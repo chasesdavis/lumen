@@ -15,6 +15,10 @@ pub const DEFAULT_MIN: usize = 256 * 1024;
 pub const DEFAULT_AVG: usize = 1024 * 1024;
 /// Largest chunk we will ever cut.
 pub const DEFAULT_MAX: usize = 4 * 1024 * 1024;
+/// Key namespace holding encrypted chunk objects. Every content-addressed
+/// chunk lands under this prefix; GC lists it and reclaims orphans. Kept as
+/// a shared constant so storage-layout changes break compilation, not GC.
+pub const CHUNK_KEY_PREFIX: &str = "chunks/";
 
 #[derive(Debug, Clone)]
 pub struct Chunk {
@@ -31,7 +35,8 @@ impl Chunk {
     pub fn storage_key(&self) -> String {
         let fp = self.fingerprint;
         format!(
-            "chunks/{:02x}{:02x}{:02x}{:02x}/{:016x}",
+            "{}{:02x}{:02x}{:02x}{:02x}/{:016x}",
+            CHUNK_KEY_PREFIX,
             fp[0], fp[1], fp[2], fp[3],
             u128::from_be_bytes(fp)
         )

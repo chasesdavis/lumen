@@ -31,6 +31,30 @@ impl S3Store {
         Self { inner }
     }
 
+    /// Build from LUMEN_S3_* environment variables. Keeps credentials out of
+    /// argv and config files while letting lumen-mount talk to a real R2/B2/
+    /// Storj/MinIO deployment without code changes:
+    /// - LUMEN_S3_ACCESS_KEY_ID / LUMEN_S3_SECRET_ACCESS_KEY (required)
+    /// - optional LUMEN_S3_REGION (object_store defaults work for most S3-compat providers)
+    pub fn from_env(endpoint: &str, bucket: &str) -> std::result::Result<Self, String> {
+        let access = std::env::var("LUMEN_S3_ACCESS_KEY_ID")
+            .map_err(|_| "LUMEN_S3_ACCESS_KEY_ID not set".to_string())?;
+        let secret = std::env::var("LUMEN_S3_SECRET_ACCESS_KEY")
+            .map_err(|_| "LUMEN_S3_SECRET_ACCESS_KEY not set".to_string())?;
+        let mut builder = AmazonS3Builder::new()
+            .with_endpoint(endpoint)
+            .with_bucket_name(bucket)
+            .with_access_key_id(access)
+            .with_secret_access_key(secret);
+        if let Ok(region) = std::env::var("LUMEN_S3_REGION") {
+            builder = builder.with_region(region);
+        }
+        let store = builder
+            .build()
+            .map_err(|e| format!("S3 backend construction failed: {e}"))?;
+        Ok(Self { inner: std::sync::Arc::new(store) })
+    }
+
     /// Map object_store errors to the LumenError variants callers branch on.
     /// VFS dedup logic treats NotFound as a cache-miss signal, so absent
     /// objects must never surface as a generic Storage error here.

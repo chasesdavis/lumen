@@ -147,6 +147,36 @@ impl MetadataIndex {
             .map_err(|e| LumenError::Storage(e.to_string()))?;
         rows.collect::<std::result::Result<Vec<_>, _>>().map_err(|e| LumenError::Storage(e.to_string()))
     }
+
+    /// Every storage key referenced by any live item's chunk list. The GC
+    /// reference scan: keys present in the store but absent from this set
+    /// are orphans left behind by deletions and content rewrites. Read
+    /// directly from chunks_json so a huge store stays O(store) here, not
+    /// O(rows * items).
+    pub fn referenced_chunk_keys(&self) -> Result<std::collections::HashSet<String>> {
+        let conn = self.conn.lock().expect("index poisoned");
+        let mut stmt = conn
+            .prepare("SELECT chunks_json FROM items")
+            .map_err(|e| LumenError::Storage(e.to_string()))?;
+        let raw: Vec<String> = stmt
+            .query_map([], |row| row.get(0))
+            .map_err(|e| LumenError::Storage(e.to_string()))?
+            .collect::<std::result::Result<Vec<_>, _>>()
+            .map_err(|e| LumenError::Storage(e.to_string()))?;
+        drop(stmt);
+        // Parse outside the mutex: chunk lists can be large and holding the
+        // index lock across JSON decode would stall lookups on big drives.
+        Ok(raw
+            .into_iter()
+            .flat_map(|json| {
+                serde_json::from_str::<Vec<crate::metadata::ChunkRef>>(&json)
+                    .unwrap_or_default()
+                    .into_iter()
+                    .map(|c| c.key)
+                    .collect::<Vec<_>>()
+            })
+            .collect())
+    }
 }
 
 fn row_to_item(row: &rusqlite::Row) -> rusqlite::Result<RemoteItem> {

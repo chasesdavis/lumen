@@ -74,5 +74,6 @@ impl DriveTree {
 }
 
 #[derive(PartialEq)]
+#[allow(dead_code)]
 enum State { Active, Tombstone }
 fn item_state(_i: &RemoteItem) -> State { State::Active }

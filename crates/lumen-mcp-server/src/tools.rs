@@ -19,18 +19,23 @@ pub struct Tools {
     /// per-file changelog round-trip. In index-only mode this stays None
     /// and write tools report their limitation instead of failing oddly.
     commits: Option<CommitBatcher>,
+    /// Storage-backed GC access. Set when vfs mode is on so gc_run drives
+    /// gc_and_report with the same UsageMeter discipline as VfsOps traffic.
+    /// Also caches any attached meter handle for meter introspection.
+    gc_ctx: Option<crate::GcContext>,
 }
 
 impl Tools {
     pub fn with_index(index: MetadataIndex) -> Self {
-        Self { index, vfs: None, commits: None }
+        Self { index, vfs: None, commits: None, gc_ctx: None }
     }
 
     /// Storage-backed mode: enables read_file with real chunk fetch +
     /// decrypt + cache through the shared VFS layer (the same path as the
     /// filesystem adapters, so MCP reads warm the same ChunkCache).
     pub fn with_vfs(index: MetadataIndex, vfs: lumen_fsprobe::vfs::VfsOps) -> Self {
-        Self { index, vfs: Some(vfs), commits: None }
+        let ctx = crate::GcContext::from_vfs(&vfs);
+        Self { index, vfs: Some(vfs), commits: None, gc_ctx: Some(ctx) }
     }
 
     /// Storage + changelog-backed mode: enables every tool including the
@@ -42,7 +47,16 @@ impl Tools {
         vfs: lumen_fsprobe::vfs::VfsOps,
         log: std::sync::Arc<lumen_core::ChangeLog>,
     ) -> Self {
-        Self { index, vfs: Some(vfs), commits: Some(CommitBatcher::new(log)) }
+        let ctx = crate::GcContext::from_vfs(&vfs);
+        Self { index, vfs: Some(vfs), commits: Some(CommitBatcher::new(log)), gc_ctx: Some(ctx) }
+    }
+
+    /// Test constructor pinning a GC meter for assertions.
+    pub fn with_gc_meter(mut self, meter: lumen_core::meter::UsageMeter) -> Self {
+        if let Some(ctx) = &mut self.gc_ctx {
+            ctx.meter = meter;
+        }
+        self
     }
 
     /// Test helper: raw access to the backing index.
@@ -116,7 +130,42 @@ impl Tools {
             "create_file" => self.create_file(args),
             "replace_file" => self.replace_file(args),
             "delete_file" => self.delete_file(args),
+            "gc_run" => self.gc_run(args),
             _ => Ok(json!({"error": format!("unknown tool {}", name)})),
+        }
+    }
+
+    /// Reclaim storage from deleted/replaced content by sweeping unreferenced
+    /// chunk keys under CHUNK_KEY_PREFIX.
+    fn gc_run(&self, _args: Value) -> Result<Value> {
+        match (&self.gc_ctx, self.commits.is_some()) {
+            // Storage + changelog-backed mode only: GC requires both live
+            // index refs AND a flushed store; index-only Tools have no
+            // storage to sweep and must report the limitation, not no-op.
+            (Some(ctx), true) => {
+                // Flush before scanning - unflushed upserts reference chunks
+                // that are already uploaded and must not be swept as orphans.
+                let pending = if let Some(commits) = &self.commits {
+                    commits.flush()?
+                } else { 0 };
+                let report = crate::gc_run_blocking(
+                    &self.index,
+                    &ctx.store,
+                    &ctx.meter,
+                )?;
+                Ok(json!({
+                    "scanned_keys": report.scanned_keys,
+                    "reclaimed_keys": report.reclaimed_keys,
+                    "reclaimed_bytes": report.reclaimed_bytes,
+                    "pending_commits_flushed": pending,
+                }))
+            }
+            (Some(_), false) => Err(LumenError::Conflict(
+                "gc_run requires full storage plus commit-log mode".into(),
+            )),
+            (None, _) => Err(LumenError::Conflict(
+                "gc_run requires storage-backed mode".into(),
+            )),
         }
     }
 

@@ -55,8 +55,10 @@ fn main() {
     rt.block_on(async {
         let index = lumen_core::index::MetadataIndex::open(&args.index_path)
             .expect("failed to open metadata index");
+        let store = build_store(&args.store_endpoint, &args.bucket).await
+            .unwrap_or_else(|e| { eprintln!("store setup failed: {e}"); std::process::exit(1); });
         let vfs = lumen_fsprobe::vfs::VfsOps::new(
-            build_store(&args.store_endpoint, &args.bucket).await,
+            store,
             lumen_core::crypto::ChunkCrypto::from_password(&args.password, b"lumen-mount-salt"),
         );
         let ops = std::sync::Arc::new(lumen_fs_adapter::MountOps::new(
@@ -85,11 +87,21 @@ fn main() {
 }
 
 #[cfg(unix)]
-async fn build_store(endpoint: &str, bucket: &str) -> std::sync::Arc<dyn lumen_core::store::ObjectStore> {
-    // Placeholder until the R2/B2/Storj adapter constructors expose a URL+bucket
-    // shape; adapters land with their integration test matrix against MinIO.
-    let _ = (endpoint, bucket);
-    std::sync::Arc::new(lumen_fsprobe::tests::MockObjectStore::default())
+async fn build_store(
+    endpoint: &str,
+    bucket: &str,
+) -> std::result::Result<std::sync::Arc<dyn lumen_core::store::ObjectStore>, String> {
+    // "file://" scheme keeps the mount fully local without any S3 provider -
+    // useful for dogfooding and Mac development before provider credentials
+    // are wired into a release config. Anything else routes through S3Store.
+    if endpoint == "file://" {
+        return Ok(std::sync::Arc::new(lumen_fsprobe::local::LocalObjectStore::open(bucket).map_err(|e| e.to_string())?));
+    }
+    if endpoint.is_empty() {
+        return Err("missing --store-endpoint: pass an S3 endpoint URL or file://".into());
+    }
+    lumen_storage_adapters::S3Store::from_env(endpoint, bucket)
+        .map(|s| std::sync::Arc::new(s) as std::sync::Arc<dyn lumen_core::store::ObjectStore>)
 }
 
 #[cfg(not(unix))]

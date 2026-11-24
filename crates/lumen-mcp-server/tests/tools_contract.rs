@@ -285,3 +285,86 @@ fn write_tools_index_only_mode_reports_limitation() {
     assert!(tools.dispatch("create_file", json!({ "name": "x" })).is_err());
     assert!(tools.dispatch("replace_file", json!({ "id": uuid::Uuid::new_v4().to_string() })).is_err());
 }
+
+#[test]
+fn gc_run_index_only_mode_reports_limitation() {
+    let tools = Tools::with_index(MetadataIndex::open_memory().unwrap());
+    let err = tools.dispatch("gc_run", json!({})).unwrap_err();
+    assert!(err.to_string().contains("storage-backed mode"));
+}
+
+#[tokio::test]
+async fn gc_run_sweeps_orphans_and_preserves_live_chunks() {
+    let store = Arc::new(MockObjectStore::default());
+    let vfs = VfsOps::new(store.clone() as Arc<dyn ObjectStore>, crypto());
+    let log = Arc::new(lumen_core::ChangeLog::default());
+    let tools = Tools::with_commit_log(
+        MetadataIndex::open_memory().unwrap(),
+        vfs,
+        log.clone(),
+    );
+
+    // Seed one live file whose chunk must survive the sweep, plus a second
+    // file we then delete - its chunk becomes reclaimable.
+    let items = seed(&tools, store.clone()).await;
+    // Route one item through the real MCP write path so its upsert sits in
+    // the CommitBatcher queue when GC runs - a pre-flush scan would see its
+    // freshly uploaded chunk as an orphan.
+    tools.dispatch("create_file", json!({
+        "name": "queued-by-mcp.txt",
+        "parent_id": items[0].id.to_string(),
+        "content": "content whose chunk is uploaded but not yet committed"
+    })).unwrap();
+
+    let dead_body = b"beta payload that will be deleted".to_vec();
+    let fp = [9u8; 16];
+    let blob = crypto().encrypt_chunk(&dead_body, &fp).unwrap();
+    store.put("chunks/deadbeef", blob.into()).await.unwrap();
+
+    // beta references nothing; create an item that points at the dead key so
+    // the sweep can prove it separates referenced vs orphan keys. Attach it
+    // to the seeded folder via direct index seeding like seed() does.
+    let now = chrono::Utc::now();
+    let victim = RemoteItem {
+        id: uuid::Uuid::new_v4(),
+        parent_id: Some(items[0].id),
+        name: "victim.txt".into(),
+        item_type: ItemType::File,
+        size: dead_body.len() as u64,
+        content_version: 1,
+        metadata_version: 1,
+        chunks: vec![ChunkRef { key: "chunks/deadbeef".into(), offset: 0, len: dead_body.len() as u64, fingerprint: fp }],
+        created_at: now,
+        modified_at: now,
+    };
+    tools.index().upsert(&victim).unwrap();
+
+    // Delete the victim through the MCP write path: immediate tombstone,
+    // chunk intentionally left behind for GC.
+    tools.dispatch("delete_file", json!({ "id": victim.id.to_string() })).unwrap();
+    assert!(store.map.lock().unwrap().contains_key("chunks/deadbeef"));
+
+    // GC run must flush pending commits first (alpha is still queued in
+    // the batcher from seed-time; a pre-flush scan would see its chunk as
+    // an orphan) and then report exactly one reclaimed key/byte count.
+    let out = tools.dispatch("gc_run", json!({})).unwrap();
+    assert_eq!(out["reclaimed_keys"], 1);
+    assert_eq!(out["scanned_keys"], 3, "chunks/a + deadbeef + the queued MCP write chunk");
+    assert_eq!(
+        out["pending_commits_flushed"].as_u64().map(|v| v > 0),
+        Some(true),
+        "MCP-created upsert must be flushed before scanning"
+    );
+    assert!(!store.map.lock().unwrap().contains_key("chunks/deadbeef"));
+    assert!(store.map.lock().unwrap().contains_key("chunks/a"));
+
+    // The tombstone survived in front of the queue and the changelog still
+    // shows exactly one removal recorded by delete_file.
+    let page = log.changes_since(0, 100).unwrap();
+    assert_eq!(page.removals.len(), 1);
+    assert_eq!(page.removals[0], victim.id);
+
+    // A second pass over clean storage reclaims nothing.
+    let idle = tools.dispatch("gc_run", json!({})).unwrap();
+    assert_eq!(idle["reclaimed_keys"], 0);
+}

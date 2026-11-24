@@ -122,6 +122,14 @@ impl VfsOps {
         self.cache.stats().hit_rate()
     }
 
+    /// Handle on the shared storage backend. Maintenance paths that work
+    /// directly against the object store (GC scans, integrity audits,
+    /// provider-side reconciliation) need the same trait object the hot
+    /// read/write paths use - never a second backend instance.
+    pub fn store_handle(&self) -> std::sync::Arc<dyn ObjectStore> {
+        self.store.clone()
+    }
+
     /// Attached usage meter (exposed for tests and billing introspection).
     pub fn meter(&self) -> &UsageMeter {
         &self.meter

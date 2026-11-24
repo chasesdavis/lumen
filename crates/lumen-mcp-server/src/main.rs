@@ -190,6 +190,7 @@ fn handle_line(tools: &Tools, auth_config: &AuthConfig, session: &mut Session, l
                     tool_def("create_file", "Create a new file under a parent folder; requires name, parent_id, optional content (storage-backed mode only)"),
                     tool_def("replace_file", "Replace a file's full contents by id, bumping content and metadata version counters (storage-backed mode only)"),
                     tool_def("delete_file", "Remove an item from the metadata index and commit the tombstone immediately; chunks remain until garbage collection"),
+                    tool_def("gc_run", "Sweep unreferenced encrypted chunks from storage and report reclaimed keys and bytes (storage plus commit-log mode only)"),
                 ]
             }
         }),

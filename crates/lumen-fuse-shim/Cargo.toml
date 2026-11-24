@@ -8,6 +8,7 @@ license.workspace = true
 lumen-core = { workspace = true }
 lumen-fsprobe = { workspace = true }
 lumen-fs-adapter = { workspace = true }
+lumen-storage-adapters = { path = "../../crates/lumen-storage-adapters" }
 futures = { workspace = true }
 tracing = { workspace = true }
 tokio = { workspace = true }

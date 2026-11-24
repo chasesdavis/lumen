@@ -155,7 +155,7 @@ impl MetadataIndex {
     /// kind=content without any remote round-trip.
     pub fn search_content(&self, pattern: &str, limit: usize) -> Result<Vec<RemoteItem>> {
         let conn = self.conn.lock().expect("index poisoned");
-        let pat = format!("%{}%", pattern.replace('%', r"%").replace('_', r"_"));
+        let pat = format!("%{}%", pattern);
         let mut stmt = conn.prepare(
             "SELECT i.id, i.parent_id, i.name, i.item_type, i.size, i.content_version, i.metadata_version, i.chunks_json, i.created_at, i.modified_at \
              FROM items i JOIN content_index c ON c.item_id = i.id \

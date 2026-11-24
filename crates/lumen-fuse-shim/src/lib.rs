@@ -356,7 +356,7 @@ const ATTR_TTL: Duration = Duration::from_secs(5);
 
 fn parent_string(shim: &FuseShim, parent: INodeNo) -> String {
     shim.path_of(parent)
-        .map(|p| to_str(p))
+        .map(to_str)
         .unwrap_or_else(|| "/".into())
 }
 

@@ -10,7 +10,7 @@ pub fn stat_to_attr(stat: Stat, ino: u64) -> fuser::FileAttr {
     fuser::FileAttr {
         ino: fuser::INodeNo(ino),
         size: if stat.is_dir { 0 } else { stat.size },
-        blocks: (stat.size + 511) / 512,
+        blocks: stat.size.div_ceil(512),
         atime: mtime,
         mtime,
         ctime: mtime,

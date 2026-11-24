@@ -494,7 +494,7 @@ fn vfs_write_blocking(
                 tokio::task::block_in_place(|| tokio::runtime::Handle::current().block_on(write))?;
             to_refs(chunks)
         }
-        Ok(_) => futures::executor::block_on(write).map(|c| to_refs(c))?,
+        Ok(_) => futures::executor::block_on(write).map(to_refs)?,
         Err(_) => {
             let chunks = tokio::runtime::Builder::new_current_thread()
                 .enable_all()

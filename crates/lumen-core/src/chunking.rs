@@ -114,16 +114,16 @@ impl FastCdc {
         for &b in &data[..self.min] {
             h = h.wrapping_mul(31).wrapping_add(b as u64);
         }
-        for i in self.min..n.min(self.avg) {
-            h = h.wrapping_mul(31).wrapping_add(data[i] as u64);
+        for (i, &b) in data[self.min..n.min(self.avg)].iter().enumerate() {
+            h = h.wrapping_mul(31).wrapping_add(b as u64);
             if (h as u32) & self.mask_s == 0 {
-                return i + 1;
+                return self.min + i + 1;
             }
         }
-        for i in self.avg.min(n)..n.min(self.max) {
-            h = h.wrapping_mul(31).wrapping_add(data[i] as u64);
+        for (i, &b) in data[self.avg.min(n)..n.min(self.max)].iter().enumerate() {
+            h = h.wrapping_mul(31).wrapping_add(b as u64);
             if (h as u32) & self.mask_l == 0 {
-                return i + 1;
+                return self.avg.min(n) + i + 1;
             }
         }
         n.min(self.max)

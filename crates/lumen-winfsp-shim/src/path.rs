@@ -21,8 +21,8 @@ pub fn nt_to_posix(file_name: &str) -> String {
     }
 }
 
-const BACKSLASH: char = '\\';
-const FORWARD_SLASH: char = '/';
+pub(crate) const BACKSLASH: char = '\\';
+pub(crate) const FORWARD_SLASH: char = '/';
 
 fn strip_device_prefix(s: &str) -> &str {
     // WinFsp normalized paths start with a single backslash. The DOS device

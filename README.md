@@ -40,7 +40,9 @@ cargo clippy --workspace --all-targets
 macOS DMG: `./scripts/build-macos-dmg.sh` (macFUSE is a runtime dependency:
 `brew install --cask macfuse`). Add `LUMEN_UNIVERSAL=1` for an arm64 + x86_64
 universal build. Windows ZIP: `scripts/build-windows-zip.ps1` on a Windows
-host (WinFsp SDK required).
+universal build. Windows ZIP: `./scripts/build-windows-zip.sh` cross-compiles
+from macOS/Linux via cargo-xwin (WinFsp SDK is vendored by the crate;
+`scripts/build-windows-zip.ps1` covers native Windows hosts).
 
 ## Run
 

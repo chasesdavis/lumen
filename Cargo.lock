@@ -1388,6 +1388,7 @@ dependencies = [
  "clap",
  "futures",
  "lumen-core",
+ "lumen-fs-adapter",
  "lumen-fsprobe",
  "lumen-storage-adapters",
  "tokio",

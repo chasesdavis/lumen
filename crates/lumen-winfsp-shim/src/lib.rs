@@ -20,6 +20,8 @@
 
 mod path;
 pub use path::nt_to_posix;
+#[cfg(windows)]
+use path::BACKSLASH;
 
 #[cfg(windows)]
 use lumen_fs_adapter::{AdapterError, MountOps};
@@ -29,14 +31,13 @@ use std::sync::Arc;
 #[cfg(windows)]
 use windows::Win32::Foundation::STATUS_DIRECTORY_NOT_EMPTY;
 #[cfg(windows)]
-use winfsp::error::Result;
+use ::winfsp::{FspError, Result};
 #[cfg(windows)]
-use winfsp::filesystem::{
+use ::winfsp::filesystem::{
     DirInfo, DirMarker, FileInfo, FileSecurity, FileSystemContext, OpenFileInfo, VolumeInfo,
-    WideNameInfo,
 };
 #[cfg(windows)]
-use winfsp::U16CStr;
+use ::winfsp::U16CStr;
 
 #[cfg(windows)]
 mod error;
@@ -71,7 +72,7 @@ pub mod winfsp {
     fn posix_path(file_name: &U16CStr) -> String {
         let s = file_name.to_string_lossy();
         let trimmed = s.trim_start_matches('\\');
-        let replaced = trimmed.replace(BACKSLASH, FORWARD_SLASH);
+        let replaced = trimmed.replace(BACKSLASH, "/");
         if replaced.is_empty() {
             "/".to_string()
         } else {
@@ -82,7 +83,7 @@ pub mod winfsp {
     fn parent_and_name(path: &str) -> Result<(String, String)> {
         match path.rsplit_once('/') {
             Some((parent, name)) if !name.is_empty() => Ok((parent.to_string(), name.to_string())),
-            _ => Err(winfsp::FspError::NTSTATUS(
+            _ => Err(FspError::NTSTATUS(
                 windows::Win32::Foundation::STATUS_INVALID_PARAMETER.0,
             )),
         }
@@ -107,7 +108,7 @@ pub mod winfsp {
         fn get_security_by_name(
             &self,
             file_name: &U16CStr,
-            security_descriptor: Option<&mut std::ffi::c_void>,
+            security_descriptor: Option<&mut [std::ffi::c_void]>,
             reparse_point_resolver: impl FnOnce(&U16CStr) -> Option<FileSecurity>,
         ) -> Result<FileSecurity> {
             // Lumen exposes no persistent ACLs yet (parity with fuse-shim which
@@ -126,8 +127,8 @@ pub mod winfsp {
         fn open(
             &self,
             file_name: &U16CStr,
-            create_options: u32,
-            granted_access: u32,
+            _create_options: u32,
+            _granted_access: u32,
             file_info: &mut OpenFileInfo,
         ) -> Result<Self::FileContext> {
             let path = posix_path(file_name);
@@ -173,14 +174,14 @@ pub mod winfsp {
                 self.ops
                     .commit_pending()
                     .await
-                    .map_err(status_from_adapter)?
+                    .map_err(status_from_adapter)
             })?;
             if let Some(context) = context {
                 let stat = block_on(async {
                     self.ops
                         .getattr(context)
                         .await
-                        .map_err(status_from_adapter)?
+                        .map_err(status_from_adapter)
                 })?;
                 *file_info = stat_to_file_info(&stat);
             }
@@ -196,7 +197,7 @@ pub mod winfsp {
                 self.ops
                     .getattr(context)
                     .await
-                    .map_err(status_from_adapter)?
+                    .map_err(status_from_adapter)
             })?;
             *file_info = stat_to_file_info(&stat);
             Ok(())
@@ -237,7 +238,7 @@ pub mod winfsp {
             marker: DirMarker,
             buffer: &mut [u8],
         ) -> Result<u32> {
-            use winfsp::filesystem::WideNameInfo;
+            use ::winfsp::filesystem::WideNameInfo;
             // Pattern filtering is skipped for now; we enumerate everything and
             // let WinFsp's kernel side filter with pass_query_directory_pattern=false
             let _ = pattern;
@@ -245,7 +246,7 @@ pub mod winfsp {
                 self.ops
                     .readdir(context)
                     .await
-                    .map_err(status_from_adapter)?
+                    .map_err(status_from_adapter)
             })?;
             let mut cursor = 0u32;
             let mut dir_info: DirInfo<255> = DirInfo::new();
@@ -284,7 +285,7 @@ pub mod winfsp {
             }
 
             if !DirInfo::<255>::finalize_buffer(buffer, &mut cursor) {
-                return Err(winfsp::FspError::NTSTATUS(
+                return Err(FspError::NTSTATUS(
                     windows::Win32::Foundation::STATUS_BUFFER_TOO_SMALL.0,
                 ));
             }
@@ -293,7 +294,7 @@ pub mod winfsp {
 
         fn rename(
             &self,
-            context: &Self::FileContext,
+            _context: &Self::FileContext,
             file_name: &U16CStr,
             new_file_name: &U16CStr,
             replace_if_exists: bool,
@@ -324,8 +325,8 @@ pub mod winfsp {
 
         fn set_delete(
             &self,
-            context: &Self::FileContext,
-            file_name: Option<&U16CStr>,
+            _context: &Self::FileContext,
+            file_name: &U16CStr,
             delete_file: bool,
         ) -> Result<()> {
             // WinFsp contract: never delete here. Only validate for
@@ -334,17 +335,16 @@ pub mod winfsp {
             if !delete_file {
                 return Ok(());
             }
-            let Some(name) = file_name else { return Ok(()) };
-            let path = posix_path(name);
+            let path = posix_path(file_name);
             let stat =
-                block_on(async { self.ops.getattr(&path).await.map_err(status_from_adapter)? })?;
+                block_on(async { self.ops.getattr(&path).await.map_err(status_from_adapter) })?;
             if !stat.is_dir {
                 return Ok(());
             }
             block_on(async {
                 let children = self.ops.readdir(&path).await.map_err(status_from_adapter)?;
                 if !children.is_empty() {
-                    return Err(winfsp::FspError::NTSTATUS(STATUS_DIRECTORY_NOT_EMPTY.0));
+                    return Err(FspError::NTSTATUS(STATUS_DIRECTORY_NOT_EMPTY.0));
                 }
                 Ok(())
             })
@@ -373,7 +373,12 @@ pub mod winfsp {
             file_info: &mut FileInfo,
         ) -> Result<u32> {
             block_on(async {
-                let existing_len = self.ops.read(context, 0, u64::MAX).await?.len() as u64;
+                let existing_len = self
+                    .ops
+                    .read(context, 0, u64::MAX)
+                    .await
+                    .map_err(status_from_adapter)?
+                    .len() as u64;
                 let (start, end) = if write_to_eof {
                     (existing_len, existing_len + buffer.len() as u64)
                 } else if constrained_io {

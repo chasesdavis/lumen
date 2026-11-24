@@ -73,7 +73,7 @@ fn main() {
             Arc::new(index),
             Arc::new(vfs),
         ));
-        let shim = lumen_winfsp_shim::WinFspShim::new(ops);
+        let shim = ::lumen_winfsp_shim::winfsp::WinFspShim::new(ops);
 
         let _init = winfsp::winfsp_init();
 
@@ -88,7 +88,7 @@ fn main() {
             .flush_and_purge_on_cleanup(true)
             .post_cleanup_when_modified_only(true)
             .pass_query_directory_filename(false);
-        let host = winfsp::host::FileSystemHost::<lumen_winfsp_shim::WinFspShim>::new_with_options(
+        let host = winfsp::host::FileSystemHost::<::lumen_winfsp_shim::winfsp::WinFspShim>::new_with_options(
             winfsp::host::FileSystemParams {
                 use_dir_info_by_name: false,
                 volume_params,
@@ -98,7 +98,7 @@ fn main() {
         );
         let mut host = host.expect("failed to create WinFsp host");
         if let Err(e) = host.mount(&args.mountpoint) {
-            eprintln!("mount failed: {}", e.to_ntstatus());
+            eprintln!("mount failed: {e:?}");
             std::process::exit(1);
         }
         tracing::info!(target: "lumen", "Lumen volume mounted at {}", args.mountpoint);

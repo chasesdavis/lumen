@@ -7,11 +7,12 @@
 
 use lumen_fs_adapter::{AdapterError, Stat};
 use windows::Win32::Foundation::{
-    STATUS_ACCESS_DENIED, STATUS_DIRECTORY_NOT_EMPTY, STATUS_OBJECT_NAME_COLLISION,
+    STATUS_ACCESS_DENIED, STATUS_OBJECT_NAME_COLLISION,
     STATUS_OBJECT_NAME_NOT_FOUND, STATUS_OBJECT_PATH_NOT_FOUND,
 };
 use windows::Win32::Storage::FileSystem::{FILE_ATTRIBUTE_ARCHIVE, FILE_ATTRIBUTE_DIRECTORY};
-use winfsp::filesystem::FileInfo;
+use ::winfsp::filesystem::FileInfo;
+use ::winfsp::FspError;
 
 /// Lumen timestamps are chrono UTC DateTime; FileInfo carries Windows
 /// filetime (100ns intervals since 1601-01-01). The epoch delta is
@@ -64,13 +65,13 @@ fn fnv_index(bytes: &[u8]) -> u64 {
 }
 
 /// Map an AdapterError onto a WinFsp NTSTATUS error.
-pub fn status_from_adapter(e: AdapterError) -> winfsp::FspError {
+pub fn status_from_adapter(e: AdapterError) -> FspError {
     match e {
-        AdapterError::NotFound => winfsp::FspError::NTSTATUS(STATUS_OBJECT_NAME_NOT_FOUND.0),
-        AdapterError::NotADirectory => winfsp::FspError::NTSTATUS(STATUS_OBJECT_PATH_NOT_FOUND.0),
-        AdapterError::IsADirectory => winfsp::FspError::NTSTATUS(STATUS_OBJECT_NAME_COLLISION.0),
-        AdapterError::AlreadyExists => winfsp::FspError::NTSTATUS(STATUS_OBJECT_NAME_COLLISION.0),
-        AdapterError::InvalidPath => winfsp::FspError::NTSTATUS(STATUS_ACCESS_DENIED.0),
-        AdapterError::Core(_) => winfsp::FspError::NTSTATUS(STATUS_ACCESS_DENIED.0),
+        AdapterError::NotFound => FspError::NTSTATUS(STATUS_OBJECT_NAME_NOT_FOUND.0),
+        AdapterError::NotADirectory => FspError::NTSTATUS(STATUS_OBJECT_PATH_NOT_FOUND.0),
+        AdapterError::IsADirectory => FspError::NTSTATUS(STATUS_OBJECT_NAME_COLLISION.0),
+        AdapterError::AlreadyExists => FspError::NTSTATUS(STATUS_OBJECT_NAME_COLLISION.0),
+        AdapterError::InvalidPath => FspError::NTSTATUS(STATUS_ACCESS_DENIED.0),
+        AdapterError::Core(_) => FspError::NTSTATUS(STATUS_ACCESS_DENIED.0),
     }
 }

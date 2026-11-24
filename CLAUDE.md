@@ -18,6 +18,7 @@ If no cargo in PATH, source $HOME/.cargo/env first.
 | Mount drive (Unix) | cargo run -p lumen-fuse-shim --bin lumen-mount -- --mountpoint /Volumes/Lumen --index-path ~/lumen.db --store-endpoint https://api.cloudflare.com/client/v4/accounts/<ACCOUNT>/r2 --bucket lumen-chunks |
 | Mount drive (Windows) | cargo run -p lumen-winfsp-shim --bin lumen-mount-winfsp -- --mountpoint C:\Lumen --index-path <INDEX_DB> --store-endpoint file://<STORE_DIR> --bucket lumen-chunks |
 | macOS distribution bundle + DMG | ./scripts/build-macos-dmg.sh (add SIGN_IDENTITY="Developer ID Application: <NAME>" to sign; artifacts land in dist/, which is gitignored) |
+| Universal (arm64 + x86_64) DMG | LUMEN_UNIVERSAL=1 ./scripts/build-macos-dmg.sh (lipo-joins both slices; needs the x86_64-apple-darwin rustup target, installed automatically) |
 | macOS bundle only, no DMG | ./scripts/build-macos-dmg.sh --no-dmg |
 | Windows portable ZIP | powershell scripts/build-windows-zip.ps1 (MUST run on a Windows box: bindgen needs WinFsp + Windows SDK headers; cross-compile from macOS is not possible) |
 | Live S3 contract (MinIO) | minio server --address 127.0.0.1:9199 --certs-dir /tmp/minio-certs /tmp/minio-data & then `mc mb local/lumen-test` with alias set to that endpoint, finally MINIO_TEST_ENDPOINT=http://127.0.0.1:9199 cargo test -p lumen-storage-adapters --test s3_contract. Without the env var the live layer skips silently and only the in-memory layer runs. Plaintext http:// endpoints are allowed by S3Store automatically. |

@@ -46,6 +46,19 @@ cargo build --release -p lumen-api-server --bin lumen-api-server
 
 cp target/release/lumen-mount target/release/lumen-mcp-server target/release/lumen-api-server "$MACOS_DIR/"
 
+# LUMEN_UNIVERSAL=1 lipo-joins a second arch slice into every binary so
+# Intel Macs (macOS 12+) can run the same bundle as Apple Silicon.
+if [ "${LUMEN_UNIVERSAL:-0}" = "1" ]; then
+    rustup target add x86_64-apple-darwin >/dev/null
+    cargo build --release --target x86_64-apple-darwin -p lumen-fuse-shim --bin lumen-mount
+    cargo build --release --target x86_64-apple-darwin -p lumen-mcp-server --bin lumen-mcp-server
+    cargo build --release --target x86_64-apple-darwin -p lumen-api-server --bin lumen-api-server
+    for bin in lumen-mount lumen-mcp-server lumen-api-server; do
+        lipo -create "target/release/$bin" "target/x86_64-apple-darwin/release/$bin" -output "$MACOS_DIR/$bin"
+        file "$MACOS_DIR/$bin" | grep -q 'universal' || { echo "lipo failed for $bin" >&2; exit 1; }
+    done
+fi
+
 # Finder launcher: first run prints setup instructions instead of failing
 # silently; afterwards it execs lumen-mount as the app lifecycle owner.
 {

@@ -20,6 +20,7 @@ If no cargo in PATH, source $HOME/.cargo/env first.
 | macOS distribution bundle + DMG | ./scripts/build-macos-dmg.sh (add SIGN_IDENTITY="Developer ID Application: <NAME>" to sign; artifacts land in dist/, which is gitignored) |
 | macOS bundle only, no DMG | ./scripts/build-macos-dmg.sh --no-dmg |
 | Windows portable ZIP | powershell scripts/build-windows-zip.ps1 (MUST run on a Windows box: bindgen needs WinFsp + Windows SDK headers; cross-compile from macOS is not possible) |
+| Live S3 contract (MinIO) | minio server --address 127.0.0.1:9199 --certs-dir /tmp/minio-certs /tmp/minio-data & then `mc mb local/lumen-test` with alias set to that endpoint, finally MINIO_TEST_ENDPOINT=http://127.0.0.1:9199 cargo test -p lumen-storage-adapters --test s3_contract. Without the env var the live layer skips silently and only the in-memory layer runs. Plaintext http:// endpoints are allowed by S3Store automatically. |
 
 ## Conventions
 

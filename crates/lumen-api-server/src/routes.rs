@@ -1,0 +1,278 @@
+//! Axum HTTP routes mirroring the API surface mapped from Helumi's
+//! OrbitAPI client, plus Lumen-only endpoints: MCP token issue and
+//! storage usage reporting for metered billing.
+
+use axum::routing::{get, post};
+use axum::Json;
+use axum::http::StatusCode;
+use serde::Deserialize;
+use serde_json::{json, Value};
+use crate::auth::{self, Claims, KeyMaterial};
+use lumen_core::changelog::ChangeLog;
+use crate::users::UserStore;
+use crate::usage::UsageLedger;
+use std::sync::Arc;
+
+pub struct AppState {
+    /// Server-side ordered changelog. Shared with any local SyncEngine via
+    /// Arc<ChangeLog> (the core ChangeFeed impl) so /v1/changes and direct
+    /// engine pulls observe exactly the same mutation stream.
+    pub changes: Arc<ChangeLog>,
+    pub keys: KeyMaterial,
+    pub users: UserStore,
+    pub usage: UsageLedger,
+    /// Dodo webhook signing key (whsec_...). Placeholder in dev state;
+    /// production loads from env/config, never committed.
+    pub dodo_webhook_key: String,
+}
+
+pub type SharedState = Arc<AppState>;
+
+impl AppState {
+    /// Dev/default state: in-memory user store, dev signing secret.
+    /// Production builds construct this with a file-backed UserStore and
+    /// a real key from config/env (never commit the default secret).
+    pub fn new_dev() -> Self {
+        Self {
+            changes: Arc::new(ChangeLog::default()),
+            keys: KeyMaterial::from_secret(b"lumen-dev-secret-change-in-production"),
+            users: UserStore::open_memory().expect("user store init"),
+            usage: UsageLedger::open_memory().expect("usage ledger init"),
+            dodo_webhook_key: "whsec_lumen_dev_placeholder".into(),
+        }
+    }
+
+    /// Production-style state over a specific changelog and stores.
+    pub fn new(changes: Arc<ChangeLog>, keys: KeyMaterial, users: UserStore, usage: UsageLedger) -> Self {
+        Self { changes, keys, users, usage, dodo_webhook_key: "whsec_lumen_dev_placeholder".into() }
+    }
+
+    /// Full production constructor including the Dodo webhook key.
+    pub fn with_dodo(mut self, key: String) -> Self {
+        self.dodo_webhook_key = key;
+        self
+    }
+}
+
+#[derive(Deserialize)]
+pub struct LoginRequest { pub email: String, pub password: String }
+
+pub async fn signup(
+    state: axum::extract::State<SharedState>,
+    Json(req): Json<LoginRequest>,
+) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
+    match state.users.signup(&req.email, &req.password) {
+        Ok(_) => login(state, Json(req)).await,
+        Err(lumen_core::error::LumenError::Conflict(msg)) => {
+            Err((StatusCode::CONFLICT, Json(json!({"error": msg}))))
+        }
+        Err(e) => {
+            Err((StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))))
+        }
+    }
+}
+
+pub async fn login(
+    state: axum::extract::State<SharedState>,
+    Json(req): Json<LoginRequest>,
+) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
+    let user = state
+        .users
+        .login(&req.email, &req.password)
+        .map_err(|_| (StatusCode::UNAUTHORIZED, Json(json!({"error": "invalid email or password"}))))?;
+    let access = Claims::new_access(&user.id, &user.email);
+    let refresh = Claims::new_refresh(&user.id, &user.email);
+    let at = auth::issue(&access, &state.keys).unwrap_or_default();
+    let rt = auth::issue(&refresh, &state.keys).unwrap_or_default();
+    Ok(Json(json!({ "token": at, "refresh": rt })))
+}
+
+/// Authenticated identity + current plan state. Plan is read fresh from the
+/// user store on every call so webhook fulfillment (subscription.active)
+/// reflects immediately without token reissue.
+pub async fn me(
+    state: axum::extract::State<SharedState>,
+    headers: axum::http::HeaderMap,
+) -> Result<Json<Value>, StatusCode> {
+    let token = headers
+        .get(axum::http::header::AUTHORIZATION)
+        .and_then(|v| v.to_str().ok())
+        .and_then(|v| v.strip_prefix("Bearer "))
+        .unwrap_or("");
+    if token.is_empty() {
+        return Err(StatusCode::UNAUTHORIZED);
+    }
+    let claims = auth::verify(token, auth::TokenScope::Access, &state.keys)
+        .map_err(|_| StatusCode::UNAUTHORIZED)?;
+    let plan = state
+        .users
+        .plan_of(&claims.sub)
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    Ok(Json(json!({
+        "id": claims.sub,
+        "email": claims.email,
+        "plan": plan.as_str(),
+    })))
+}
+
+pub async fn changes(
+    state: axum::extract::State<SharedState>,
+    params: axum::extract::Query<std::collections::HashMap<String, String>>,
+) -> Result<Json<Value>, StatusCode> {
+    let q = params.0;
+    let since: i64 = q.get("since").and_then(|v| v.parse().ok()).unwrap_or(0);
+    let limit: usize = q.get("limit").and_then(|v| v.parse().ok()).unwrap_or(500);
+    let page = state
+        .changes
+        .changes_since(since, limit)
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    Ok(Json(json!({
+        "cursor": page.cursor,
+        "more": page.more,
+        "upserts": page.upserts,
+        "removals": page.removals,
+    })))
+}
+
+#[derive(Deserialize)]
+pub struct FileUpsertRequest {
+    pub id: uuid::Uuid,
+    #[serde(default)]
+    pub parent_id: Option<uuid::Uuid>,
+    pub name: String,
+    #[serde(default = "default_size")]
+    pub size: u64,
+    #[serde(default)]
+    pub content_version: i64,
+    #[serde(default)]
+    pub metadata_version: i64,
+    /// Chunk map uploaded by the client after chunk upload completes. The
+    /// server is metadata-only here; it never sees plaintext or keys.
+    #[serde(default)]
+    pub chunks: Vec<lumen_core::metadata::ChunkRef>,
+}
+
+fn default_size() -> u64 { 0 }
+
+/// Record a file/folder upsert into the ordered changelog. Clients that
+/// persisted a cursor pick this up on the next /v1/changes pull - the same
+/// single stream of truth Helumi's OrbitAPI drove differently per surface.
+pub async fn file_upsert(
+    state: axum::extract::State<SharedState>,
+    Json(req): Json<FileUpsertRequest>,
+) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
+    let now = chrono::Utc::now();
+    let item = lumen_core::metadata::RemoteItem {
+        id: req.id,
+        parent_id: req.parent_id,
+        name: req.name,
+        item_type: lumen_core::metadata::ItemType::File,
+        size: req.size,
+        // Optimistic concurrency: version must move forward, never back.
+        content_version: req.content_version.max(1),
+        metadata_version: req.metadata_version.max(1),
+        chunks: req.chunks,
+        created_at: now,
+        modified_at: now,
+    };
+    let seq = state
+        .changes
+        .record_upsert(item)
+        .map_err(|_| (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": "changelog append failed"}))))?;
+    Ok(Json(json!({ "id": req.id.to_string(), "seq": seq })))
+}
+
+#[derive(Deserialize)]
+pub struct FileDeleteRequest { pub id: uuid::Uuid }
+
+pub async fn file_delete(
+    state: axum::extract::State<SharedState>,
+    Json(req): Json<FileDeleteRequest>,
+) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
+    state
+        .changes
+        .record_removal(req.id)
+        .map_err(|_| (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": "changelog append failed"}))))?;
+    Ok(Json(json!({ "id": req.id.to_string(), "removed": true })))
+}
+
+/// Dodo webhook endpoint. Verifies Standard Webhooks headers + HMAC over
+/// "{id}.{timestamp}.{raw_body}", then dispatches on event type. Malformed
+/// headers and stale timestamps 400 (spec-conformant rejection without a
+/// valid signed message); signature mismatch fails closed the same way.
+/// Unknown event types return 200 so Dodo stops retrying them.
+pub async fn dodo_webhook(
+    state: axum::extract::State<SharedState>,
+    headers: axum::http::HeaderMap,
+    body: String,
+) -> Result<Json<Value>, StatusCode> {
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_secs())
+        .unwrap_or(0);
+    let hook_headers = crate::dodo::WebhookHeaders::from_headers(&headers)
+        .map_err(|_| StatusCode::BAD_REQUEST)?;
+    crate::dodo::verify_webhook(&state.dodo_webhook_key, &hook_headers, body.as_bytes(), now)
+        .map_err(|_| StatusCode::BAD_REQUEST)?;
+    let evt: crate::dodo::DodoEvent = serde_json::from_str(&body).map_err(|_| StatusCode::BAD_REQUEST)?;
+    match evt.event_type.as_str() {
+        crate::dodo::EVENT_PAYMENT_SUCCEEDED | crate::dodo::EVENT_SUBSCRIPTION_ACTIVE | crate::dodo::EVENT_SUBSCRIPTION_RENEWED => {
+            // Subscription fulfillment: match evt.data.customer_id against the
+            // users.dodo_customer_id column and grant plan access. Unknown
+            // customers still 200 - Dodo retries would not fix a mapping that
+            // does not exist (checkout-before-signup race), so we ack and rely
+            // on signup-time linking plus plan refresh on next login.
+            let fulfilled = evt
+                .data
+                .as_ref()
+                .and_then(|d| d.get("customer_id"))
+                .and_then(|v| v.as_str())
+                .map(|cid| {
+                    state.users.grant_plan_by_dodo_customer(cid, crate::users::Plan::Base)
+                });
+            match fulfilled {
+                Some(Ok(true)) => Ok(Json(json!({ "received": true, "fulfilled": true }))),
+                _ => Ok(Json(json!({ "received": true, "fulfilled": false }))),
+            }
+        }
+        _ => Ok(Json(json!({ "received": true, "handled": false }))),
+    }
+}
+
+/// Bearer-token extractor: validates the access JWT and hands the handler
+/// the claims. Bad/expired tokens surface as 401, not 500s from handlers.
+pub async fn usage(
+    state: axum::extract::State<SharedState>,
+    headers: axum::http::HeaderMap,
+) -> Result<Json<Value>, StatusCode> {
+    let token = headers
+        .get(axum::http::header::AUTHORIZATION)
+        .and_then(|v| v.to_str().ok())
+        .and_then(|v| v.strip_prefix("Bearer "))
+        .unwrap_or("");
+    if token.is_empty() {
+        return Err(StatusCode::UNAUTHORIZED);
+    }
+    let claims = auth::verify(token, auth::TokenScope::Access, &state.keys)
+        .map_err(|_| StatusCode::UNAUTHORIZED)?;
+    let (stored, retrieved) = state.usage.current_period_usage(&claims.sub)
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    Ok(Json(json!({
+        "storage_bytes": stored,
+        "retrieved_bytes": retrieved,
+        "period": crate::usage::UsageLedger::period_of(chrono::Utc::now()),
+    })))
+}
+
+pub fn router(state: SharedState) -> axum::Router {
+    axum::Router::new()
+        .route("/v1/auth/signup", post(signup))
+        .route("/v1/auth/login", post(login))
+        .route("/v1/me", get(me))
+        .route("/v1/changes", get(changes))
+        .route("/v1/files", post(file_upsert))
+        .route("/v1/files/delete", post(file_delete))
+        .route("/v1/billing/usage", get(usage))
+        .route("/v1/dodo/webhook", post(dodo_webhook))
+        .with_state(state)
+}

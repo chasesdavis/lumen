@@ -1,0 +1,13 @@
+[package]
+name = "lumen-fs-adapter"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+lumen-core = { workspace = true }
+lumen-fsprobe = { workspace = true }
+chrono = { workspace = true }
+tokio = { workspace = true }
+thiserror = { workspace = true }
+uuid = { workspace = true }

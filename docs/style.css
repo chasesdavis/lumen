@@ -273,3 +273,6 @@ footer a:hover { color: var(--ink); }
 
 
 @media (max-width: 560px) { .finder .side { display: none; } .finder .body { grid-template-columns: 1fr; } .agent { position: static; margin-top: 14px; width: 100%; } }
+.price-card, .price-grid > * { min-width: 0; }
+.price-table { min-width: 0; }
+.compare-wrap, .term, .code { max-width: 100%; }

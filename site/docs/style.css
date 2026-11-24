@@ -1,0 +1,30 @@
+:root {
+  --bg: #0b0d10;
+  --bg-elev: #12151a;
+  --border: #232830;
+  --fg: #e6e9ee;
+  --fg-dim: #9aa3af;
+  --accent: #6cb2ff;
+  --mono: ui-monospace, "SF Mono", "Cascadia Code", Menlo, monospace;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: var(--bg); color: var(--fg); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; line-height: 1.6; }
+.container { max-width: 1040px; margin: 0 auto; padding: 0 24px; }
+header { border-bottom: 1px solid var(--border); padding: 20px 0; }
+header .container { display: flex; justify-content: space-between; align-items: center; }
+.logo { font-size: 18px; font-weight: 700; letter-spacing: -0.02em; color: var(--fg); text-decoration: none; }
+.logo span { color: var(--accent); }
+nav a { color: var(--fg-dim); text-decoration: none; font-size: 14px; margin-left: 24px; }
+main { padding: 48px 24px 80px; max-width: 800px; margin: 0 auto; }
+h1 { font-size: 34px; letter-spacing: -0.02em; margin-bottom: 16px; }
+h2 { font-size: 22px; margin-top: 40px; margin-bottom: 12px; letter-spacing: -0.01em; }
+h3 { font-size: 17px; margin-top: 28px; margin-bottom: 8px; color: var(--accent); font-family: var(--mono); font-weight: 500; }
+p, li { color: var(--fg-dim); font-size: 15.5px; margin-bottom: 10px; }
+ul, dl { padding-left: 22px; }
+code { background: #07090b; border: 1px solid var(--border); border-radius: 4px; padding: 1px 6px; font-family: var(--mono); font-size: 13.5px; color: #c4d3e8; }
+.code { display: block; background: #07090b; border: 1px solid var(--border); border-radius: 10px; padding: 18px 20px; font-family: var(--mono); font-size: 13.5px; color: #c4d3e8; overflow-x: auto; white-space: pre; margin-top: 20px; margin-bottom: 20px; }
+dt { color: var(--fg); font-weight: 600; margin-top: 18px; }
+dd { color: var(--fg-dim); font-size: 14.5px; margin-left: 0; padding-left: 22px; }
+article h2 { color: var(--accent); font-family: var(--mono); font-weight: 500; font-size: 18px; }
+footer { padding: 36px 0; color: var(--fg-dim); font-size: 13px; border-top: 1px solid var(--border); text-align: center; }
+footer a { color: var(--fg-dim); }

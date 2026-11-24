@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Lumen — Agent-native encrypted drive for macOS, Windows, and Linux</title>
+  <meta name="description" content="Lumen is a cross-platform, agent-native virtual drive. Your files, mounted as a real drive, with a dedicated MCP server layer for AI agents. $3/mo plus storage at provider cost." />
+  <style>
+    :root {
+      --bg: #0b0d10;
+      --bg-elev: #12151a;
+      --border: #232830;
+      --fg: #e6e9ee;
+      --fg-dim: #9aa3af;
+      --accent: #6cb2ff;
+      --accent-soft: rgba(108, 178, 255, 0.12);
+      --mono: ui-monospace, "SF Mono", "Cascadia Code", Menlo, monospace;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: var(--bg); color: var(--fg); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; line-height: 1.55; }
+    .container { max-width: 1040px; margin: 0 auto; padding: 0 24px; }
+    header { border-bottom: 1px solid var(--border); padding: 20px 0; }
+    header .container { display: flex; justify-content: space-between; align-items: center; }
+    .logo { font-size: 18px; font-weight: 700; letter-spacing: -0.02em; color: var(--fg); text-decoration: none; }
+    .logo span { color: var(--accent); }
+    nav a { color: var(--fg-dim); text-decoration: none; font-size: 14px; margin-left: 24px; }
+    nav a:hover { color: var(--fg); }
+    section { padding: 80px 0; border-bottom: 1px solid var(--border); }
+    section:last-of-type { border-bottom: none; }
+    h1 { font-size: clamp(34px, 5vw, 54px); line-height: 1.1; letter-spacing: -0.03em; max-width: 720px; }
+    h1 em { color: var(--accent); font-style: normal; }
+    .hero-sub { margin-top: 20px; font-size: 19px; color: var(--fg-dim); max-width: 600px; }
+    h2 { font-size: 28px; letter-spacing: -0.02em; margin-bottom: 12px; }
+    .section-sub { color: var(--fg-dim); margin-bottom: 40px; max-width: 640px; }
+    .grid { display: grid; gap: 16px; }
+    .grid.cols-3 { grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+    .card { background: var(--bg-elev); border: 1px solid var(--border); border-radius: 10px; padding: 22px; }
+    .card h3 { font-size: 17px; margin-bottom: 8px; }
+    .card p { color: var(--fg-dim); font-size: 14px; }
+    .pill { display: inline-block; background: var(--accent-soft); color: var(--accent); border-radius: 100px; padding: 3px 12px; font-size: 12px; font-weight: 600; letter-spacing: 0.02em; margin-bottom: 14px; }
+    table { width: 100%; border-collapse: collapse; font-size: 15px; }
+    th, td { text-align: left; padding: 12px 16px; border-bottom: 1px solid var(--border); }
+    th { color: var(--fg-dim); font-weight: 500; font-size: 13px; text-transform: uppercase; letter-spacing: 0.04em; }
+    td.num, th.num { text-align: right; font-family: var(--mono); font-size: 14px; }
+    tr.hl td { color: var(--accent); }
+    .code { display: block; background: #07090b; border: 1px solid var(--border); border-radius: 10px; padding: 18px 20px; font-family: var(--mono); font-size: 13.5px; color: #c4d3e8; overflow-x: auto; white-space: pre; margin-top: 24px; }
+    .code .c { color: #5d6a7a; }
+    .code .k { color: #7ecfff; }
+    .cta-row { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 32px; }
+    .btn { display: inline-block; background: var(--accent); color: #06121f; font-weight: 700; padding: 12px 26px; border-radius: 8px; text-decoration: none; font-size: 15px; }
+    .btn.ghost { background: transparent; color: var(--fg); border: 1px solid var(--border); }
+    footer { padding: 36px 0; color: var(--fg-dim); font-size: 13px; border-top: 1px solid var(--border); }
+    footer a { color: var(--fg-dim); }
+    @media (max-width: 640px) { section { padding: 56px 0 } }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="container">
+      <a class="logo" href="/">Lumen<span>.</span></a>
+      <nav>
+        <a href="#features">Features</a>
+        <a href="#pricing">Pricing</a>
+        <a href="#agents">For agents</a>
+        <a href="/docs/getting-started.html">Docs</a>
+      </nav>
+    </div>
+  </header>
+
+  <section>
+    <div class="container">
+      <h1>Your drive. Every platform.<br /><em>Native to AI agents.</em></h1>
+      <p class="hero-sub">
+        Lumen mounts your encrypted storage as a real drive on macOS, Windows,
+        and Linux — and ships an MCP server so coding agents query your files
+        programmatically instead of shelling out to <span style="font-family: var(--mono)">find</span>.
+      </p>
+      <div class="cta-row">
+        <a class="btn" href="https://github.com/waguriagentic/lumen/releases">Download (beta)</a>
+        <a class="btn ghost" href="/docs/getting-started.html">Read the docs</a>
+      </div>
+      <pre class="code"><span class="c"># From install to a working drive:</span>
+cargo install --path crates/lumen-fuse-shim --bin lumen-mount
+lumen-mount --mountpoint /Volumes/Lumen             --index-path ~/.lumen/index.db             --store-endpoint file://$HOME/.lumen/store             --bucket lumen-chunks</pre>
+    </div>
+  </section>
+
+  <section id="features">
+    <div class="container">
+      <h2>What Lumen does differently</h2>
+      <p class="section-sub">Three structural advantages over flat-rate single-platform competitors.</p>
+      <div class="grid cols-3">
+        <div class="card">
+          <div class="pill">Cross-platform core</div>
+          <h3>One Rust core, three platforms</h3>
+          <p>macOS, Windows, and Linux share the same chunking, encryption, sync, and cache engine. Platform adapters are thin — no rewrite risk per OS, no version-lock to one vendor's newest release.</p>
+        </div>
+        <div class="card">
+          <div class="pill">Deconstructed pricing</div>
+          <h3>$3/mo + storage at cost + 10%</h3>
+          <p>Bring your own bucket or use managed R2/B2/Storj. Storage passes through at provider cost plus a 10% operations margin — billing shrinks when GC reclaims space, it never ratchets up.</p>
+        </div>
+        <div class="card">
+          <div class="pill">Agent-native</div>
+          <h3>MCP server built in</h3>
+          <p>Cursor, Claude, Codex-type agents call <span style="font-family: var(--mono)">list_projects</span>, <span style="font-family: var(--mono)">search_files</span>, read, and write tools directly. Files are a first-class API surface, not just Finder entries.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="pricing">
+    <div class="container">
+      <h2>Pricing that follows your usage</h2>
+      <p class="section-sub">
+        Simulated from pinned provider rates with a 5% chunking-overhead factor.
+        Compare against the flat-rate competitor's $10/mo.
+      </p>
+      <table>
+        <thead><tr><th>Usage profile</th><th class="num">Backblaze B2</th><th class="num">Storj</th><th class="num">Cloudflare R2</th><th class="num">Flat-rate competitor</th><th class="num">Lumen BYOB</th></tr></thead>
+        <tbody>
+          <tr><td>10 GB</td><td class="num">$3.08</td><td class="num">$3.08</td><td class="num">$3.17</td><td class="num">$10.00</td><td class="num hl" rowspan="3">$3.00 flat<br />any volume,<br />your bucket</td></tr>
+          <tr><td>100 GB</td><td class="num">$3.80</td><td class="num">$3.81</td><td class="num">$4.73</td><td class="num">$10.00</td></tr>
+          <tr><td>1 TB</td><td class="num">$11.22</td><td class="num">$11.28</td><td class="num">$20.74</td><td class="num">$10.00</td></tr>
+        </tbody>
+      </table>
+      <p class="section-sub" style="margin-top: 24px;">
+        Under 100 GB, pass-through beats the flat rate on every provider by 53–69%.
+        Above a few hundred GB, BYOB mode ($3/mo, your own R2/B2/S3 credentials,
+        zero storage markup) is the honest option — we say so instead of hiding it in tiers.
+      </p>
+    </div>
+  </section>
+
+  <section id="agents">
+    <div class="container">
+      <h2>Built for agents first</h2>
+      <p class="section-sub">A dedicated MCP server exposes your drive as structured tools. Agents search metadata locally — instant, offline-capable filename queries — and pull chunk ranges only when needed.</p>
+      <pre class="code"><span class="c"># Cursor / Claude / any MCP client config</span>
+{
+  "mcpServers": {
+    "lumen": {
+      "command": "lumen-mcp-server",
+      "args": ["<span class="k">--transport</span>", "stdio",
+               "<span class="k">--index-path</span>", "~/.lumen/index.db"]
+    }
+  }
+}</pre>
+    </div>
+  </section>
+
+  <footer>
+    <div class="container">
+      Lumen — open beta. Docs: <a href="/docs/getting-started.html">Getting started</a> ·
+      Changelog: <a href="/docs/changelog.html">changelog</a>
+    </div>
+  </footer>
+</body>
+</html>

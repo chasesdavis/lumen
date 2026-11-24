@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Getting started — Lumen</title>
+  <link rel="stylesheet" href="/docs/style.css" />
+</head>
+<body>
+  <header>
+    <div class="container">
+      <a class="logo" href="/">Lumen<span>.</span></a>
+      <nav><a href="/">Home</a> <a href="/docs/changelog.html">Changelog</a></nav>
+    </div>
+  </header>
+  <main class="container">
+    <h1>Getting started</h1>
+    <p>Lumen is in open beta. The fastest path from install to a working drive:</p>
+
+    <h2 id="requirements">Requirements</h2>
+    <ul>
+      <li>macOS 12+, Linux (FUSE), or Windows (WinFsp runtime)</li>
+      <li>Rust toolchain (for the beta; installers ship later)</li>
+      <li>For S3 backends: your access key and secret key set as
+        environment variables — never passed on argv</li>
+    </ul>
+
+    <h2 id="build">1. Build</h2>
+    <pre class="code">git clone https://github.com/waguriagentic/lumen.git
+cd lumen
+cargo build --workspace</pre>
+
+    <h2 id="mount">2. Mount a drive</h2>
+    <p>The mount daemon starts, creates/opens the local index, and mounts the volume:</p>
+    <h3>macOS / Linux</h3>
+    <pre class="code">cargo run -p lumen-fuse-shim --bin lumen-mount -- \
+  --mountpoint /Volumes/Lumen \
+  --index-path ~/.lumen/index.db \
+  --store-endpoint file://$HOME/.lumen/store \
+  --bucket lumen-chunks</pre>
+    <p>To use a real S3-compatible provider instead of the local dev backend,
+      replace <code>--store-endpoint file://...</code> with your endpoint and export
+      credentials first:</p>
+    <pre class="code">export LUMEN_S3_ACCESS_KEY_ID=...
+export LUMEN_S3_SECRET_ACCESS_KEY=...
+# R2: https://api.cloudflare.com/client/v4/accounts/&lt;ACCOUNT&gt;/r2
+# B2/Storj/MinIO: your S3 endpoint
+lumen-mount --mountpoint /Volumes/Lumen --index-path ~/.lumen/index.db \
+            --store-endpoint https://... --bucket lumen-chunks</pre>
+    <h3>Windows</h3>
+    <pre class="code">cargo run -p lumen-winfsp-shim --bin lumen-mount-winfsp -- ^
+  --mountpoint C:\Lumen ^
+  --index-path %USERPROFILE%\.lumen\index.db ^
+  --store-endpoint file://%USERPROFILE%\.lumen\store ^
+  --bucket lumen-chunks</pre>
+
+    <h2 id="agents">3. Connect an agent (MCP)</h2>
+    <p>Expose the drive to Cursor/Claude/Codex-type clients via the MCP server:</p>
+    <pre class="code">{
+  "mcpServers": {
+    "lumen": {
+      "command": "lumen-mcp-server",
+      "args": ["--transport", "stdio", "--index-path", "~/.lumen/index.db"]
+    }
+  }
+}</pre>
+    <p>With <code>LUMEN_JWT_SECRET</code> set, tool calls are gated behind the
+      <code>authorize</code> tool (an Access-scope JWT). Without it the server runs in
+      open mode.</p>
+
+    <h2 id="api-server">4. Optional: run the API server</h2>
+    <p>Auth, changelog feed, Dodo billing webhooks, usage metering, and the GC admin route:</p>
+    <pre class="code">export LUMEN_JWT_SECRET=$(openssl rand -hex 32)
+export LUMEN_DODO_API_KEY=dodo_sk_...
+export LUMEN_DODO_WEBHOOK_KEY=whsec_...
+
+LUMEN_USERS_DB=~/.lumen/users.db \
+LUMEN_USAGE_DB=~/.lumen/usage.db \
+LUMEN_INDEX_DB=~/.lumen/server-index.db \
+LUMEN_LOCAL_STORE_DIR=~/.lumen/store \
+LUMEN_API_HOST=127.0.0.1 LUMEN_API_PORT=8080 \
+cargo run -p lumen-api-server --bin lumen-api-server</pre>
+    <p>Key endpoints:</p>
+    <ul>
+      <li><code>POST /v1/auth/signup</code>, <code>POST /v1/auth/login</code></li>
+      <li><code>GET /v1/me</code> — identity + plan state</li>
+      <li><code>GET /v1/changes?since=&lt;cursor&gt;</code> — ordered mutation feed</li>
+      <li><code>POST /v1/files</code>, <code>POST /v1/files/delete</code></li>
+      <li><code>GET /v1/billing/usage</code> — current-period storage/retrieved bytes</li>
+      <li><code>POST /v1/admin/gc</code> — run one GC sweep; reclaimed bytes reduce the metered amount</li>
+      <li><code>POST /v1/dodo/webhook</code> — Standard Webhooks signature verification</li>
+    </ul>
+
+    <h2 id="troubleshooting">Troubleshooting</h2>
+    <dl>
+      <dt>Mount fails on macOS with macFUSE not found</dt>
+      <dd>This beta's local kernel mount tests require a macOS FUSE box or CI runner.
+        Use <code>--store-endpoint file://</code> for non-FUSE development.</dd>
+      <dt>S3 store construction failed</dt>
+      <dd>Credentials must be exported as
+        <code>LUMEN_S3_ACCESS_KEY_ID</code> and <code>LUMEN_S3_SECRET_ACCESS_KEY</code>.
+        Never pass them as command-line arguments.</dd>
+      <dt>MCP tools return error -32001</dt>
+      <dd>The server is running gated mode. Call the <code>authorize</code> tool with
+        an Access-scope JWT first; authorization persists for the connection.</dd>
+      <dt>GC reclaims nothing / reclaims too much</dt>
+      <dd>Every CommitBatcher feeding the index must flush before GC runs, or
+        freshly uploaded chunks look like orphans. The MCP gc_run tool and the
+        API admin route honor this flush-first contract automatically.</dd>
+    </dl>
+  </main>
+  <footer><div class="container">Lumen open beta · <a href="/">Home</a></div></footer>
+</body>
+</html>

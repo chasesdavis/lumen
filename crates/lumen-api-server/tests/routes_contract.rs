@@ -8,7 +8,6 @@ use lumen_api_server::auth::KeyMaterial;
 use lumen_api_server::routes::{router, AppState};
 use lumen_api_server::usage::UsageLedger;
 use lumen_api_server::users::UserStore;
-use lumen_core::changelog::ChangeLog;
 use lumen_core::metadata::{ItemType, RemoteItem};
 use lumen_core::sync::SyncEngine;
 use serde_json::{json, Value};
@@ -260,6 +259,7 @@ async fn dodo_webhook_rejects_bad_and_accepts_signed_events() {
         users: UserStore::open_memory().unwrap(),
         usage: UsageLedger::open_memory().unwrap(),
         dodo_webhook_key: secret.to_string(),
+        gc_backend: None,
     });
     // Real current timestamp: the 5-minute replay tolerance is enforced.
     let ts = std::time::SystemTime::now()
@@ -344,6 +344,7 @@ async fn signed_subscription_active_webhook_fulfills_plan_for_linked_customer() 
         users,
         usage: UsageLedger::open_memory().unwrap(),
         dodo_webhook_key: secret.to_string(),
+        gc_backend: None,
     });
     let ts = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)

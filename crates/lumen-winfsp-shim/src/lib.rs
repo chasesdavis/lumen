@@ -427,6 +427,3 @@ pub mod winfsp {
         }
     }
 }
-
-const BACKSLASH: char = '\\';
-const FORWARD_SLASH: char = '/';

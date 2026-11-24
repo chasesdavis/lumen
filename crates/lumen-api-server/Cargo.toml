@@ -6,6 +6,8 @@ license.workspace = true
 
 [dependencies]
 lumen-core = { workspace = true }
+lumen-fsprobe = { workspace = true }
+lumen-storage-adapters = { path = "../lumen-storage-adapters" }
 tokio = { workspace = true }
 axum = { workspace = true }
 serde = { workspace = true }
@@ -27,5 +29,7 @@ base64 = "0.22"
 [dev-dependencies]
 tower = { version = "0.5", features = ["util"] }
 http-body-util = { version = "0.1.1" }
+bytes = { workspace = true }
+tempfile = "3"
 clap = { workspace = true }
 rusqlite = { workspace = true }

@@ -9,6 +9,9 @@ use axum::http::StatusCode;
 use axum::routing::{get, post};
 use axum::Json;
 use lumen_core::changelog::ChangeLog;
+use lumen_core::gc::gc_collect;
+use lumen_core::index::MetadataIndex;
+use lumen_core::store::ObjectStore;
 use serde::Deserialize;
 use serde_json::{json, Value};
 use std::sync::Arc;
@@ -24,6 +27,21 @@ pub struct AppState {
     /// Dodo webhook signing key (whsec_...). Placeholder in dev state;
     /// production loads from env/config, never committed.
     pub dodo_webhook_key: String,
+    /// Optional server-side metadata index + object store pair backing
+    /// the GC admin surface. When present, file upserts/deletes feed the
+    /// index so gc admin passes have a live reference set. None keeps the
+    /// server purely changelog/metadata-only (no store credentials here).
+    pub gc_backend: Option<GcBackend>,
+}
+
+/// Server-side index + store pair used by the GC admin route. The index is
+/// always local SQLite (chunk maps only, no plaintext). The store can be a
+/// local dir backend or the shared S3-compatible backend - either way this
+/// service never holds chunk encryption keys.
+#[derive(Clone)]
+pub struct GcBackend {
+    pub index: Arc<MetadataIndex>,
+    pub store: Arc<dyn ObjectStore>,
 }
 
 pub type SharedState = Arc<AppState>;
@@ -39,6 +57,7 @@ impl AppState {
             users: UserStore::open_memory().expect("user store init"),
             usage: UsageLedger::open_memory().expect("usage ledger init"),
             dodo_webhook_key: "whsec_lumen_dev_placeholder".into(),
+            gc_backend: None,
         }
     }
 
@@ -55,12 +74,19 @@ impl AppState {
             users,
             usage,
             dodo_webhook_key: "whsec_lumen_dev_placeholder".into(),
+            gc_backend: None,
         }
     }
 
     /// Full production constructor including the Dodo webhook key.
     pub fn with_dodo(mut self, key: String) -> Self {
         self.dodo_webhook_key = key;
+        self
+    }
+
+    /// Attach a server-side index + store for GC and reference tracking.
+    pub fn with_gc_backend(mut self, backend: GcBackend) -> Self {
+        self.gc_backend = Some(backend);
         self
     }
 }
@@ -194,6 +220,16 @@ pub async fn file_upsert(
         created_at: now,
         modified_at: now,
     };
+    // Feed the server-side index too when GC tracking is enabled. Same rule
+    // as the changelog: metadata + chunk keys only, plaintext never sent.
+    if let Some(backend) = &state.gc_backend {
+        backend.index.upsert(&item).map_err(|e| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({"error": e.to_string()})),
+            )
+        })?;
+    }
     let seq = state.changes.record_upsert(item).map_err(|_| {
         (
             StatusCode::INTERNAL_SERVER_ERROR,
@@ -212,6 +248,14 @@ pub async fn file_delete(
     state: axum::extract::State<SharedState>,
     Json(req): Json<FileDeleteRequest>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
+    if let Some(backend) = &state.gc_backend {
+        backend.index.remove(&req.id).map_err(|e| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({"error": e.to_string()})),
+            )
+        })?;
+    }
     state.changes.record_removal(req.id).map_err(|_| {
         (
             StatusCode::INTERNAL_SERVER_ERROR,
@@ -296,6 +340,56 @@ pub async fn usage(
     })))
 }
 
+/// Run one mark-and-sweep GC pass over the server-side index + store and
+/// record the reclaimed bytes as a NEGATIVE stored-bytes delta on the
+/// caller's ledger row. This is what reconciles pass-through billing with
+/// what the provider actually stores after deletions: reclaimed chunks
+/// must reduce the metered amount, not inflate it.
+///
+/// Auth: Bearer access token. The caller's user id scopes both the ledger
+/// delta and (in production deployments) the store namespace; a single
+/// shared backend here is fine because GcReport only carries aggregate
+/// counts - no cross-user data is exposed.
+pub async fn admin_gc(
+    state: axum::extract::State<SharedState>,
+    headers: axum::http::HeaderMap,
+) -> Result<Json<Value>, StatusCode> {
+    let token = headers
+        .get(axum::http::header::AUTHORIZATION)
+        .and_then(|v| v.to_str().ok())
+        .and_then(|v| v.strip_prefix("Bearer "))
+        .unwrap_or("");
+    if token.is_empty() {
+        return Err(StatusCode::UNAUTHORIZED);
+    }
+    let claims = auth::verify(token, auth::TokenScope::Access, &state.keys)
+        .map_err(|_| StatusCode::UNAUTHORIZED)?;
+    let backend = state
+        .gc_backend
+        .as_ref()
+        .ok_or(StatusCode::NOT_IMPLEMENTED)?;
+    let report = gc_collect(&backend.index, backend.store.as_ref())
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    // Signed delta: reclaim subtracts from the current period meter.
+    if report.reclaimed_bytes > 0 {
+        state
+            .usage
+            .record(
+                &claims.sub,
+                -(report.reclaimed_bytes as i64),
+                0,
+                chrono::Utc::now(),
+            )
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    }
+    Ok(Json(json!({
+        "scanned_keys": report.scanned_keys,
+        "reclaimed_keys": report.reclaimed_keys,
+        "reclaimed_bytes": report.reclaimed_bytes,
+    })))
+}
+
 pub fn router(state: SharedState) -> axum::Router {
     axum::Router::new()
         .route("/v1/auth/signup", post(signup))
@@ -305,6 +399,7 @@ pub fn router(state: SharedState) -> axum::Router {
         .route("/v1/files", post(file_upsert))
         .route("/v1/files/delete", post(file_delete))
         .route("/v1/billing/usage", get(usage))
+        .route("/v1/admin/gc", post(admin_gc))
         .route("/v1/dodo/webhook", post(dodo_webhook))
         .with_state(state)
 }

@@ -36,6 +36,7 @@
         <li>110 passing tests across the workspace including COGS regression gates, FS-adapter workload patterns (Xcode, Docker bind-mount, video scrub), and concurrent SQLite index integrity.</li>
         <li>Packaging pipeline: scripts/build-macos-dmg.sh produces a signed-optional Lumen.app bundle + verified UDZO DMG with all three binaries and a first-run launcher; scripts/build-windows-zip.ps1 produces the Windows portable ZIP on a Windows host (WinFsp bindgen cannot cross-compile).</li>
         <li>0.1.0-beta.1 published: universal (arm64 + x86_64) macOS DMG via LUMEN_UNIVERSAL=1, downloads served from GitHub Releases; docs site live on GitHub Pages.</li>
+        <li>Windows x64 portable ZIP added to the same release. The winfsp shim now actually compiles for a windows target (host-gated build dependency fixed, module shadowing fixed, trait signatures aligned to winfsp 0.13, delayload emitted correctly on cross builds). Cross-compiled from macOS with cargo-xwin; pinned by a build script.</li>
       </ul>
     </article>
   </main>

@@ -29,15 +29,15 @@ use lumen_fs_adapter::{AdapterError, MountOps};
 use std::sync::Arc;
 
 #[cfg(windows)]
-use windows::Win32::Foundation::STATUS_DIRECTORY_NOT_EMPTY;
-#[cfg(windows)]
-use ::winfsp::{FspError, Result};
-#[cfg(windows)]
 use ::winfsp::filesystem::{
     DirInfo, DirMarker, FileInfo, FileSecurity, FileSystemContext, OpenFileInfo, VolumeInfo,
 };
 #[cfg(windows)]
 use ::winfsp::U16CStr;
+#[cfg(windows)]
+use ::winfsp::{FspError, Result};
+#[cfg(windows)]
+use windows::Win32::Foundation::STATUS_DIRECTORY_NOT_EMPTY;
 
 #[cfg(windows)]
 mod error;
@@ -170,18 +170,10 @@ pub mod winfsp {
             file_info: &mut FileInfo,
         ) -> Result<()> {
             // Commit any pending batched upserts so buffered writes survive.
-            block_on(async {
-                self.ops
-                    .commit_pending()
-                    .await
-                    .map_err(status_from_adapter)
-            })?;
+            block_on(async { self.ops.commit_pending().await.map_err(status_from_adapter) })?;
             if let Some(context) = context {
                 let stat = block_on(async {
-                    self.ops
-                        .getattr(context)
-                        .await
-                        .map_err(status_from_adapter)
+                    self.ops.getattr(context).await.map_err(status_from_adapter)
                 })?;
                 *file_info = stat_to_file_info(&stat);
             }
@@ -193,12 +185,8 @@ pub mod winfsp {
             context: &Self::FileContext,
             file_info: &mut FileInfo,
         ) -> Result<()> {
-            let stat = block_on(async {
-                self.ops
-                    .getattr(context)
-                    .await
-                    .map_err(status_from_adapter)
-            })?;
+            let stat =
+                block_on(async { self.ops.getattr(context).await.map_err(status_from_adapter) })?;
             *file_info = stat_to_file_info(&stat);
             Ok(())
         }
@@ -242,12 +230,8 @@ pub mod winfsp {
             // Pattern filtering is skipped for now; we enumerate everything and
             // let WinFsp's kernel side filter with pass_query_directory_pattern=false
             let _ = pattern;
-            let entries = block_on(async {
-                self.ops
-                    .readdir(context)
-                    .await
-                    .map_err(status_from_adapter)
-            })?;
+            let entries =
+                block_on(async { self.ops.readdir(context).await.map_err(status_from_adapter) })?;
             let mut cursor = 0u32;
             let mut dir_info: DirInfo<255> = DirInfo::new();
 

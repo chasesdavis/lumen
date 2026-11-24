@@ -5,14 +5,14 @@
 
 #![cfg(windows)]
 
-use lumen_fs_adapter::{AdapterError, Stat};
-use windows::Win32::Foundation::{
-    STATUS_ACCESS_DENIED, STATUS_OBJECT_NAME_COLLISION,
-    STATUS_OBJECT_NAME_NOT_FOUND, STATUS_OBJECT_PATH_NOT_FOUND,
-};
-use windows::Win32::Storage::FileSystem::{FILE_ATTRIBUTE_ARCHIVE, FILE_ATTRIBUTE_DIRECTORY};
 use ::winfsp::filesystem::FileInfo;
 use ::winfsp::FspError;
+use lumen_fs_adapter::{AdapterError, Stat};
+use windows::Win32::Foundation::{
+    STATUS_ACCESS_DENIED, STATUS_OBJECT_NAME_COLLISION, STATUS_OBJECT_NAME_NOT_FOUND,
+    STATUS_OBJECT_PATH_NOT_FOUND,
+};
+use windows::Win32::Storage::FileSystem::{FILE_ATTRIBUTE_ARCHIVE, FILE_ATTRIBUTE_DIRECTORY};
 
 /// Lumen timestamps are chrono UTC DateTime; FileInfo carries Windows
 /// filetime (100ns intervals since 1601-01-01). The epoch delta is

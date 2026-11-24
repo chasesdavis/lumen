@@ -43,10 +43,7 @@ pub struct GcReport {
 /// orphans and could delete data whose only referencing row has not landed
 /// yet. Caller contract: flush every CommitBatcher feeding this index
 /// before invoking gc_collect.
-pub async fn gc_collect(
-    index: &MetadataIndex,
-    store: &dyn ObjectStore,
-) -> Result<GcReport> {
+pub async fn gc_collect(index: &MetadataIndex, store: &dyn ObjectStore) -> Result<GcReport> {
     let referenced = index.referenced_chunk_keys()?;
     let mut scanned = 0u64;
     let mut reclaimed_keys = 0u64;
@@ -75,7 +72,11 @@ pub async fn gc_collect(
         }
     }
 
-    Ok(GcReport { scanned_keys: scanned, reclaimed_keys, reclaimed_bytes })
+    Ok(GcReport {
+        scanned_keys: scanned,
+        reclaimed_keys,
+        reclaimed_bytes,
+    })
 }
 
 /// GC pass that reports reclaimed bytes through the usage metering seam.
@@ -149,7 +150,11 @@ mod tests {
                 .unwrap()
                 .iter()
                 .filter(|(k, _)| k.starts_with(prefix))
-                .map(|(k, v)| ListEntry { key: k.clone(), size: v.len() as u64, etag: None })
+                .map(|(k, v)| ListEntry {
+                    key: k.clone(),
+                    size: v.len() as u64,
+                    etag: None,
+                })
                 .collect())
         }
         async fn head(&self, _key: &str) -> Result<u64> {
@@ -162,7 +167,12 @@ mod tests {
         let mut off = 0;
         for (i, k) in chunk_keys.iter().enumerate() {
             let len = 1024u64 * (k.len() as u64);
-            chunks.push(ChunkRef { key: k.clone(), offset: off, len, fingerprint: [0; 16] });
+            chunks.push(ChunkRef {
+                key: k.clone(),
+                offset: off,
+                len,
+                fingerprint: [0; 16],
+            });
             off += len;
             // suppress unused warning pattern for i while keeping readability
             let _ = i;
@@ -189,8 +199,14 @@ mod tests {
         // Two files; A keeps referencing its chunk after B is deleted.
         let key_a = "chunks/aa/bb/cc/dd/001100".to_string();
         let key_b = "chunks/aa/bb/cc/dd/002200".to_string();
-        store.put(&key_a, bytes::Bytes::from(vec![1u8; 400])).await.unwrap();
-        store.put(&key_b, bytes::Bytes::from(vec![2u8; 300])).await.unwrap();
+        store
+            .put(&key_a, bytes::Bytes::from(vec![1u8; 400]))
+            .await
+            .unwrap();
+        store
+            .put(&key_b, bytes::Bytes::from(vec![2u8; 300]))
+            .await
+            .unwrap();
 
         let mut file_a = item("a.txt", &[key_a.clone()]);
         index.upsert(&file_a).unwrap();
@@ -220,7 +236,9 @@ mod tests {
         let _ = &mut file_a;
     }
 
-    fn key_a_str(k: &str) -> &str { k }
+    fn key_a_str(k: &str) -> &str {
+        k
+    }
 
     #[tokio::test]
     async fn gc_handles_replace_orphans_and_ignores_non_chunk_objects() {
@@ -230,8 +248,14 @@ mod tests {
         // v1 has one chunk; replace switches to two different keys.
         let old_key = "chunks/00/11/22/33/dead00".to_string();
         let new_k1 = "chunks/44/55/66/77/alive01".to_string();
-        store.put(old_key.as_str(), bytes::Bytes::from(vec![9u8; 900])).await.unwrap();
-        store.put(new_k1.as_str(), bytes::Bytes::from(vec![5u8; 700])).await.unwrap();
+        store
+            .put(old_key.as_str(), bytes::Bytes::from(vec![9u8; 900]))
+            .await
+            .unwrap();
+        store
+            .put(new_k1.as_str(), bytes::Bytes::from(vec![5u8; 700]))
+            .await
+            .unwrap();
 
         let mut f = item("doc.md", &[old_key.clone()]);
         index.upsert(&f).unwrap();
@@ -240,12 +264,20 @@ mod tests {
         f.content_version += 1;
         f.metadata_version += 1;
         let replaced_len = 700;
-        f.chunks = vec![ChunkRef { key: new_k1.clone(), offset: 0, len: replaced_len as u64, fingerprint: [0; 16] }];
+        f.chunks = vec![ChunkRef {
+            key: new_k1.clone(),
+            offset: 0,
+            len: replaced_len as u64,
+            fingerprint: [0; 16],
+        }];
         f.size = replaced_len as u64;
         index.upsert(&f).unwrap();
 
         // Non-chunk object must never be touched even though it exists.
-        store.put("meta/manifest.json", bytes::Bytes::from("hi")).await.unwrap();
+        store
+            .put("meta/manifest.json", bytes::Bytes::from("hi"))
+            .await
+            .unwrap();
 
         let report = gc_collect(&index, store.as_ref()).await.unwrap();
         assert_eq!(report.scanned_keys, 2, "only keys under chunks/");
@@ -263,8 +295,14 @@ mod tests {
 
         let live = "chunks/10/20/30/40/livekey".to_string();
         let dead = "chunks/50/60/70/80/deadkey".to_string();
-        store.put(live.as_str(), bytes::Bytes::from(vec![1u8; 256])).await.unwrap();
-        store.put(dead.as_str(), bytes::Bytes::from(vec![2u8; 128])).await.unwrap();
+        store
+            .put(live.as_str(), bytes::Bytes::from(vec![1u8; 256]))
+            .await
+            .unwrap();
+        store
+            .put(dead.as_str(), bytes::Bytes::from(vec![2u8; 128]))
+            .await
+            .unwrap();
 
         let f = item("f.bin", &[live.clone()]);
         index.upsert(&f).unwrap();
@@ -282,7 +320,11 @@ mod tests {
         let m2 = UsageMeter::new(sink);
         let r2 = gc_and_report(&index, store.clone(), &m2).await.unwrap();
         assert_eq!(r2.reclaimed_bytes, 0, "nothing left after first pass");
-        assert_eq!(seen.lock().unwrap().len(), 0, "no event when nothing reclaimed");
+        assert_eq!(
+            seen.lock().unwrap().len(),
+            0,
+            "no event when nothing reclaimed"
+        );
     }
 
     #[tokio::test]
@@ -294,8 +336,14 @@ mod tests {
         let index = MetadataIndex::open_memory().unwrap();
         let store = Arc::new(CountingStore::default());
         let fresh = "chunks/99/88/77/66/uncommitted".to_string();
-        store.put(fresh.as_str(), bytes::Bytes::from(vec![7u8; 512])).await.unwrap();
+        store
+            .put(fresh.as_str(), bytes::Bytes::from(vec![7u8; 512]))
+            .await
+            .unwrap();
         let report = gc_collect(&index, store.as_ref()).await.unwrap();
-        assert_eq!(report.reclaimed_keys, 1, "unflushed upload is treated as garbage");
+        assert_eq!(
+            report.reclaimed_keys, 1,
+            "unflushed upload is treated as garbage"
+        );
     }
 }

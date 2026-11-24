@@ -21,7 +21,9 @@ pub struct CacheStats {
 impl CacheStats {
     pub fn hit_rate(&self) -> f64 {
         let total = self.hits + self.misses;
-        if total == 0 { return 0.0; }
+        if total == 0 {
+            return 0.0;
+        }
         self.hits as f64 / total as f64
     }
 }
@@ -98,11 +100,14 @@ impl ChunkCache {
             if map.contains_key(key) {
                 return true; // already cached; keep original copy
             }
-            map.insert(key.to_string(), Entry {
-                data: Arc::new(data),
-                last_used: t,
-                pinned: false,
-            });
+            map.insert(
+                key.to_string(),
+                Entry {
+                    data: Arc::new(data),
+                    last_used: t,
+                    pinned: false,
+                },
+            );
         }
         self.current_bytes.fetch_add(incoming, Ordering::Relaxed);
         self.evict_if_needed();
@@ -161,8 +166,7 @@ impl ChunkCache {
     fn evict_if_needed(&self) {
         // Pinned bytes do not create eviction pressure: a chunk held open by
         // a streaming reader must never force newer cached chunks out.
-        while self.current_bytes.load(Ordering::Relaxed)
-            - self.pinned_bytes.load(Ordering::Relaxed)
+        while self.current_bytes.load(Ordering::Relaxed) - self.pinned_bytes.load(Ordering::Relaxed)
             > self.budget_bytes
         {
             let victim = {

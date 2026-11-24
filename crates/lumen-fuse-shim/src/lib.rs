@@ -28,7 +28,10 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
 
-use fuser::{Errno, FileHandle, FileType as FuseKind, INodeNo, OpenFlags, ReplyAttr, ReplyCreate, ReplyData, ReplyDirectory, ReplyEmpty, ReplyEntry, ReplyOpen, ReplyWrite, Request, WriteFlags};
+use fuser::{
+    Errno, FileHandle, FileType as FuseKind, INodeNo, OpenFlags, ReplyAttr, ReplyCreate, ReplyData,
+    ReplyDirectory, ReplyEmpty, ReplyEntry, ReplyOpen, ReplyWrite, Request, WriteFlags,
+};
 
 mod attr;
 pub use attr::{errno_from_adapter, stat_to_attr};
@@ -54,15 +57,27 @@ impl FuseShim {
         let mut inodes = std::collections::HashMap::new();
         inodes.insert(fuser::INodeNo::ROOT.0, PathBuf::from("/"));
         let mut next_ino = 2u64;
-        while next_ino < 16 { next_ino += 1; }
-        Self { ops, inner: Arc::new(ShimInner { next_ino: std::sync::atomic::AtomicU64::new(next_ino), inodes: std::sync::Mutex::new(inodes) }) }
+        while next_ino < 16 {
+            next_ino += 1;
+        }
+        Self {
+            ops,
+            inner: Arc::new(ShimInner {
+                next_ino: std::sync::atomic::AtomicU64::new(next_ino),
+                inodes: std::sync::Mutex::new(inodes),
+            }),
+        }
     }
 
     fn child_path(&self, parent: INodeNo, name: &OsStr) -> Option<PathBuf> {
-        if name.is_empty() { return None; }
+        if name.is_empty() {
+            return None;
+        }
         // Guard against separators in names: Lumen names are flat; lookup of
         // "a/b" under parent must not be treated as two-level resolution.
-        if name.to_string_lossy().contains('/') { return None; }
+        if name.to_string_lossy().contains('/') {
+            return None;
+        }
         let parent_path = self.path_of(parent)?;
         Some(parent_path.join(name))
     }
@@ -72,7 +87,10 @@ impl FuseShim {
     }
 
     fn register(&self, path: PathBuf) -> INodeNo {
-        let ino = self.inner.next_ino.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+        let ino = self
+            .inner
+            .next_ino
+            .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
         if let Ok(mut map) = self.inner.inodes.lock() {
             map.insert(ino, path);
         }
@@ -102,7 +120,8 @@ impl fuser::Filesystem for FuseShim {
 
     fn lookup(&self, _req: &Request, parent: INodeNo, name: &OsStr, reply: ReplyEntry) {
         let Some(child) = self.child_path(parent, name) else {
-            reply.error(Errno::EINVAL); return;
+            reply.error(Errno::EINVAL);
+            return;
         };
         match block_on(self.ops.getattr(&to_str(child.clone()))) {
             Ok(stat) => {
@@ -118,7 +137,8 @@ impl fuser::Filesystem for FuseShim {
     fn getattr(&self, _req: &Request, ino: INodeNo, fh: Option<FileHandle>, reply: ReplyAttr) {
         let _ = fh;
         let Some(path) = self.path_of(ino) else {
-            reply.error(Errno::ENOENT); return;
+            reply.error(Errno::ENOENT);
+            return;
         };
         match block_on(self.ops.getattr(&to_str(path))) {
             Ok(stat) => reply.attr(&ATTR_TTL, &stat_to_attr(stat, ino.0)),
@@ -126,10 +146,18 @@ impl fuser::Filesystem for FuseShim {
         }
     }
 
-    fn readdir(&self, _req: &Request, dir: INodeNo, fh: FileHandle, offset: u64, mut reply: ReplyDirectory) {
+    fn readdir(
+        &self,
+        _req: &Request,
+        dir: INodeNo,
+        fh: FileHandle,
+        offset: u64,
+        mut reply: ReplyDirectory,
+    ) {
         let _ = fh;
         let Some(path) = self.path_of(dir) else {
-            reply.error(Errno::ENOENT); return;
+            reply.error(Errno::ENOENT);
+            return;
         };
         // Skip ahead when the kernel restarts enumeration mid-scan.
         let dir_path = to_str(path);
@@ -138,8 +166,14 @@ impl fuser::Filesystem for FuseShim {
                 // "."/".." get stable synthetic low inodes to keep posix find
                 // traversals happy without polluting the item id namespace.
                 if offset == 0 {
-                    if !reply.add(dir, 1, FuseKind::Directory, ".") { reply.ok(); return; }
-                    if !reply.add(dir, 2, FuseKind::Directory, "..") { reply.ok(); return; }
+                    if !reply.add(dir, 1, FuseKind::Directory, ".") {
+                        reply.ok();
+                        return;
+                    }
+                    if !reply.add(dir, 2, FuseKind::Directory, "..") {
+                        reply.ok();
+                        return;
+                    }
                 }
                 for (i, stat) in entries.into_iter().enumerate() {
                     let entry_off = offset + i as u64 + 3;
@@ -155,17 +189,35 @@ impl fuser::Filesystem for FuseShim {
         }
     }
 
-    fn open(&self, _req: &Request, ino: INodeNo, flags: OpenFlags, kill_suid_gid: bool, reply: ReplyOpen) {
+    fn open(
+        &self,
+        _req: &Request,
+        ino: INodeNo,
+        flags: OpenFlags,
+        kill_suid_gid: bool,
+        reply: ReplyOpen,
+    ) {
         // Open with write intent triggers read-modify-write staging only at
         // flush time; keep a no-op handle here and let flush drive commit.
         let _ = (ino, flags, kill_suid_gid);
         reply.opened(FileHandle(0), fuser::FopenFlags::empty());
     }
 
-    fn read(&self, _req: &Request, ino: INodeNo, fh: FileHandle, off: u64, size: u32, flags: OpenFlags, lock_owner: Option<fuser::LockOwner>, reply: ReplyData) {
+    fn read(
+        &self,
+        _req: &Request,
+        ino: INodeNo,
+        fh: FileHandle,
+        off: u64,
+        size: u32,
+        flags: OpenFlags,
+        lock_owner: Option<fuser::LockOwner>,
+        reply: ReplyData,
+    ) {
         let _ = (fh, flags, lock_owner);
         let Some(path) = self.path_of(ino) else {
-            reply.error(Errno::ENOENT); return;
+            reply.error(Errno::ENOENT);
+            return;
         };
         match block_on(self.ops.read(&to_str(path), off, size as u64)) {
             Ok(buf) => reply.data(&buf),
@@ -173,28 +225,62 @@ impl fuser::Filesystem for FuseShim {
         }
     }
 
-    fn create(&self, _req: &Request, parent: INodeNo, name: &OsStr, mode: u32, umask: u32, flags: i32, kill_suid_gid: bool, owner: fuser::Owner, reply: ReplyCreate) {
+    fn create(
+        &self,
+        _req: &Request,
+        parent: INodeNo,
+        name: &OsStr,
+        mode: u32,
+        umask: u32,
+        flags: i32,
+        kill_suid_gid: bool,
+        owner: fuser::Owner,
+        reply: ReplyCreate,
+    ) {
         let _ = (mode, umask, flags, kill_suid_gid, owner);
         let Some(child) = self.child_path(parent, name) else {
-            reply.error(Errno::EINVAL); return;
+            reply.error(Errno::EINVAL);
+            return;
         };
         let parent_path = parent_string(self, parent);
-        match block_on(self.ops.create(&parent_path, name.to_str().unwrap_or_default(), Vec::new())) {
+        match block_on(
+            self.ops
+                .create(&parent_path, name.to_str().unwrap_or_default(), Vec::new()),
+        ) {
             Ok(stat) => {
                 let ino = self.register(child.clone());
                 let attr = stat_to_attr(stat, ino.0);
-                reply.created(&LOOKUP_TTL, &attr, fuser::Generation(0), FileHandle(0), fuser::FopenFlags::empty());
+                reply.created(
+                    &LOOKUP_TTL,
+                    &attr,
+                    fuser::Generation(0),
+                    FileHandle(0),
+                    fuser::FopenFlags::empty(),
+                );
             }
             Err(e) => reply.error(errno_from_adapter(e)),
         }
     }
 
-    fn mkdir(&self, _req: &Request, parent: INodeNo, name: &OsStr, mode: u32, umask: u32, owner: fuser::Owner, reply: ReplyEntry) {
+    fn mkdir(
+        &self,
+        _req: &Request,
+        parent: INodeNo,
+        name: &OsStr,
+        mode: u32,
+        umask: u32,
+        owner: fuser::Owner,
+        reply: ReplyEntry,
+    ) {
         let _ = (mode, umask, owner);
         let Some(child) = self.child_path(parent, name) else {
-            reply.error(Errno::EINVAL); return;
+            reply.error(Errno::EINVAL);
+            return;
         };
-        match block_on(self.ops.mkdir(&parent_string(self, parent), name.to_str().unwrap_or_default())) {
+        match block_on(self.ops.mkdir(
+            &parent_string(self, parent),
+            name.to_str().unwrap_or_default(),
+        )) {
             Ok(stat) => {
                 let ino = self.register(child.clone());
                 let attr = stat_to_attr(stat, ino.0);
@@ -206,7 +292,8 @@ impl fuser::Filesystem for FuseShim {
 
     fn unlink(&self, _req: &Request, parent: INodeNo, name: &OsStr, reply: ReplyEmpty) {
         let Some(child) = self.child_path(parent, name) else {
-            reply.error(Errno::EINVAL); return;
+            reply.error(Errno::EINVAL);
+            return;
         };
         match block_on(self.ops.remove(&to_str(child))) {
             Ok(_) => reply.ok(),
@@ -216,7 +303,8 @@ impl fuser::Filesystem for FuseShim {
 
     fn rmdir(&self, _req: &Request, parent: INodeNo, name: &OsStr, reply: ReplyEmpty) {
         let Some(child) = self.child_path(parent, name) else {
-            reply.error(Errno::EINVAL); return;
+            reply.error(Errno::EINVAL);
+            return;
         };
         match block_on(self.ops.remove(&to_str(child))) {
             Ok(_) => reply.ok(),
@@ -224,10 +312,22 @@ impl fuser::Filesystem for FuseShim {
         }
     }
 
-    fn write(&self, _req: &Request, ino: INodeNo, fh: FileHandle, off: u64, data: &[u8], write_flags: WriteFlags, flags: OpenFlags, lock_owner: Option<fuser::LockOwner>, reply: ReplyWrite) {
+    fn write(
+        &self,
+        _req: &Request,
+        ino: INodeNo,
+        fh: FileHandle,
+        off: u64,
+        data: &[u8],
+        write_flags: WriteFlags,
+        flags: OpenFlags,
+        lock_owner: Option<fuser::LockOwner>,
+        reply: ReplyWrite,
+    ) {
         let _ = (fh, write_flags, flags, lock_owner);
         let Some(path) = self.path_of(ino) else {
-            reply.error(Errno::ENOENT); return;
+            reply.error(Errno::ENOENT);
+            return;
         };
         match block_on(append_at(&self.ops, &to_str(path), off, data.to_vec())) {
             Ok(n) => reply.written(n as u32),
@@ -235,7 +335,14 @@ impl fuser::Filesystem for FuseShim {
         }
     }
 
-    fn flush(&self, _req: &Request, ino: INodeNo, fh: FileHandle, lock_owner: fuser::LockOwner, reply: ReplyEmpty) {
+    fn flush(
+        &self,
+        _req: &Request,
+        ino: INodeNo,
+        fh: FileHandle,
+        lock_owner: fuser::LockOwner,
+        reply: ReplyEmpty,
+    ) {
         let _ = (ino, fh, lock_owner);
         match block_on(self.ops.commit_pending()) {
             Ok(_) => reply.ok(),
@@ -248,7 +355,9 @@ const LOOKUP_TTL: Duration = Duration::from_secs(5);
 const ATTR_TTL: Duration = Duration::from_secs(5);
 
 fn parent_string(shim: &FuseShim, parent: INodeNo) -> String {
-    shim.path_of(parent).map(|p| to_str(p)).unwrap_or_else(|| "/".into())
+    shim.path_of(parent)
+        .map(|p| to_str(p))
+        .unwrap_or_else(|| "/".into())
 }
 
 fn to_str(p: PathBuf) -> String {
@@ -256,7 +365,11 @@ fn to_str(p: PathBuf) -> String {
 }
 
 fn kind_of(is_dir: bool) -> FuseKind {
-    if is_dir { FuseKind::Directory } else { FuseKind::RegularFile }
+    if is_dir {
+        FuseKind::Directory
+    } else {
+        FuseKind::RegularFile
+    }
 }
 
 /// Bridge sync fuser callbacks onto async MountOps. Same ambient-runtime
@@ -265,13 +378,19 @@ fn kind_of(is_dir: bool) -> FuseKind {
 /// a current-thread runtime, and a private throwaway runtime otherwise.
 fn block_on<F: std::future::Future>(fut: F) -> F::Output {
     match tokio::runtime::Handle::try_current() {
-        Ok(h) if h.runtime_flavor() == tokio::runtime::RuntimeFlavor::MultiThread =>
-            tokio::task::block_in_place(|| h.block_on(fut)),
+        Ok(h) if h.runtime_flavor() == tokio::runtime::RuntimeFlavor::MultiThread => {
+            tokio::task::block_in_place(|| h.block_on(fut))
+        }
         _ => futures::executor::block_on(fut),
     }
 }
 
-async fn append_at(ops: &Arc<MountOps>, path: &str, off: u64, mut data: Vec<u8>) -> Result<usize, AdapterError> {
+async fn append_at(
+    ops: &Arc<MountOps>,
+    path: &str,
+    off: u64,
+    mut data: Vec<u8>,
+) -> Result<usize, AdapterError> {
     let mut existing = ops.read(path, 0, u64::MAX).await?;
     let total_end = (off + data.len() as u64) as usize;
     if total_end > existing.len() {
@@ -280,7 +399,8 @@ async fn append_at(ops: &Arc<MountOps>, path: &str, off: u64, mut data: Vec<u8>)
     }
     if off as usize <= existing.len() {
         let end = (off as usize + data.len()).min(existing.len());
-        existing[off as usize..end].copy_from_slice(data.as_mut_slice()[..end - off as usize].as_ref());
+        existing[off as usize..end]
+            .copy_from_slice(data.as_mut_slice()[..end - off as usize].as_ref());
     }
     ops.replace(path, existing.clone()).await?;
     Ok(data.len())

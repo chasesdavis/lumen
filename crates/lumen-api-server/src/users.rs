@@ -30,7 +30,10 @@ pub enum Plan {
 
 impl Plan {
     pub fn as_str(&self) -> &'static str {
-        match self { Plan::None => "none", Plan::Base => "base" }
+        match self {
+            Plan::None => "none",
+            Plan::Base => "base",
+        }
     }
 }
 
@@ -56,14 +59,18 @@ impl UserStore {
             );",
         )
         .map_err(|e| LumenError::Storage(e.to_string()))?;
-        Ok(Self { conn: std::sync::Arc::new(Mutex::new(conn)) })
+        Ok(Self {
+            conn: std::sync::Arc::new(Mutex::new(conn)),
+        })
     }
 
     /// New store handle sharing the same underlying connection. Lets a
     /// caller keep inspection access after moving the primary store into
     /// shared state (webhook fulfillment assertions do exactly this).
     pub fn share(&self) -> UserStore {
-        Self { conn: self.conn.clone() }
+        Self {
+            conn: self.conn.clone(),
+        }
     }
 
     /// Create a user with an argon2id hash. Duplicate email is a Conflict.
@@ -84,7 +91,10 @@ impl UserStore {
             }
             other => LumenError::Storage(other.to_string()),
         })?;
-        Ok(User { id, email: email.to_string() })
+        Ok(User {
+            id,
+            email: email.to_string(),
+        })
     }
 
     /// Verify credentials and return the user. Constant-shape error on any
@@ -96,14 +106,23 @@ impl UserStore {
             conn.query_row(
                 "SELECT id, email, password_hash FROM users WHERE email = ?1",
                 params![email],
-                |r| Ok((r.get::<_, String>(0)?, r.get::<_, String>(1)?, r.get::<_, String>(2)?)),
+                |r| {
+                    Ok((
+                        r.get::<_, String>(0)?,
+                        r.get::<_, String>(1)?,
+                        r.get::<_, String>(2)?,
+                    ))
+                },
             )
         };
         let (id, stored_email, stored_hash) =
             row.map_err(|_| LumenError::Auth("invalid email or password".to_string()))?;
         auth::verify_password(password, &stored_hash)
             .map_err(|_| LumenError::Auth("invalid email or password".to_string()))?;
-        Ok(User { id, email: stored_email })
+        Ok(User {
+            id,
+            email: stored_email,
+        })
     }
 
     /// Link a user to their Dodo customer id. Webhook fulfillment matches on
@@ -158,19 +177,28 @@ mod tests {
     #[test]
     fn signup_login_roundtrip() {
         let store = UserStore::open_memory().unwrap();
-        let u = store.signup("chase@example.com", "correct horse battery staple").unwrap();
+        let u = store
+            .signup("chase@example.com", "correct horse battery staple")
+            .unwrap();
         assert_eq!(u.email, "chase@example.com");
 
-        let logged_in = store.login("chase@example.com", "correct horse battery staple").unwrap();
+        let logged_in = store
+            .login("chase@example.com", "correct horse battery staple")
+            .unwrap();
         assert_eq!(logged_in.id, u.id);
     }
 
     #[test]
     fn wrong_password_and_unknown_email_fail_identically() {
         let store = UserStore::open_memory().unwrap();
-        store.signup("chase@example.com", "correct horse battery staple").unwrap();
+        store
+            .signup("chase@example.com", "correct horse battery staple")
+            .unwrap();
         let e1 = format!("{}", store.login("chase@example.com", "wrong").unwrap_err());
-        let e2 = format!("{}", store.login("nobody@example.com", "wrong").unwrap_err());
+        let e2 = format!(
+            "{}",
+            store.login("nobody@example.com", "wrong").unwrap_err()
+        );
         // Both paths must produce the same client-facing message so the
         // endpoint cannot be used to probe which emails are registered.
         assert_eq!(e1, e2);
@@ -181,7 +209,9 @@ mod tests {
     fn duplicate_email_conflicts() {
         let store = UserStore::open_memory().unwrap();
         store.signup("chase@example.com", "password one").unwrap();
-        let err = store.signup("chase@example.com", "password two").unwrap_err();
+        let err = store
+            .signup("chase@example.com", "password two")
+            .unwrap_err();
         assert!(matches!(err, LumenError::Conflict(_)));
     }
 
@@ -190,8 +220,13 @@ mod tests {
         let store = UserStore::open_memory().unwrap();
         let pw = "hunter2-hunter2-hunter2";
         store.signup("a@b.c", pw).unwrap();
-        let raw = store.conn.lock().unwrap()
-            .query_row("SELECT password_hash FROM users", [], |r| r.get::<_, String>(0))
+        let raw = store
+            .conn
+            .lock()
+            .unwrap()
+            .query_row("SELECT password_hash FROM users", [], |r| {
+                r.get::<_, String>(0)
+            })
             .unwrap();
         assert!(!raw.contains(pw));
     }
@@ -199,16 +234,22 @@ mod tests {
     #[test]
     fn subscription_fulfillment_grants_plan_by_dodo_customer() {
         let store = UserStore::open_memory().unwrap();
-        let u = store.signup("chase@example.com", "correct horse battery staple").unwrap();
+        let u = store
+            .signup("chase@example.com", "correct horse battery staple")
+            .unwrap();
         store.set_dodo_customer(&u.id, "cst_9f2a").unwrap();
 
         // Fulfillment arrives with only the provider-side id in the payload.
-        let granted = store.grant_plan_by_dodo_customer("cst_9f2a", Plan::Base).unwrap();
+        let granted = store
+            .grant_plan_by_dodo_customer("cst_9f2a", Plan::Base)
+            .unwrap();
         assert!(granted, "linked customer must be found");
         assert_eq!(store.plan_of(&u.id).unwrap(), Plan::Base);
 
         // Unknown customer acks as unfulfilled instead of erroring.
-        let missing = store.grant_plan_by_dodo_customer("cst_unknown", Plan::Base).unwrap();
+        let missing = store
+            .grant_plan_by_dodo_customer("cst_unknown", Plan::Base)
+            .unwrap();
         assert!(!missing);
         // The granted plan survives an unrelated miss - never downgraded.
         assert_eq!(store.plan_of(&u.id).unwrap(), Plan::Base);
@@ -217,10 +258,14 @@ mod tests {
     #[test]
     fn replays_are_idempotent_for_fulfillment() {
         let store = UserStore::open_memory().unwrap();
-        let u = store.signup("replay@example.com", "correct horse battery staple").unwrap();
+        let u = store
+            .signup("replay@example.com", "correct horse battery staple")
+            .unwrap();
         store.set_dodo_customer(&u.id, "cst_replay_1").unwrap();
         for _ in 0..3 {
-            assert!(store.grant_plan_by_dodo_customer("cst_replay_1", Plan::Base).unwrap());
+            assert!(store
+                .grant_plan_by_dodo_customer("cst_replay_1", Plan::Base)
+                .unwrap());
         }
         assert_eq!(store.plan_of(&u.id).unwrap(), Plan::Base);
     }

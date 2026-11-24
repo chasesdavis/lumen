@@ -32,9 +32,18 @@ impl Provider {
     }
 }
 
-const R2: Provider = Provider { name: "Cloudflare R2", usd_per_gb_month: 0.015 };
-const B2: Provider = Provider { name: "Backblaze B2", usd_per_gb_month: 0.00586 };
-const STORJ: Provider = Provider { name: "Storj", usd_per_gb_month: 0.00390625 };
+const R2: Provider = Provider {
+    name: "Cloudflare R2",
+    usd_per_gb_month: 0.015,
+};
+const B2: Provider = Provider {
+    name: "Backblaze B2",
+    usd_per_gb_month: 0.00586,
+};
+const STORJ: Provider = Provider {
+    name: "Storj",
+    usd_per_gb_month: 0.00390625,
+};
 
 /// Storage routing policy implied by these cost curves: pick the cheapest
 /// provider for the user's usage tier. R2 wins below its crossover thanks to
@@ -82,6 +91,9 @@ fn helumi_crossover_points_allow_a_over_100gb_claim_when_routing() {
         (HELUMI_FLAT_USD - BASE_MONTHLY_USD) / (p.usd_per_gb_month * STORAGE_MARGIN)
     }
     assert!(crossover(&R2) >= 400.0);
-    let best = [B2, STORJ].iter().map(|p| crossover(p)).fold(0.0_f64, f64::max);
+    let best = [B2, STORJ]
+        .iter()
+        .map(|p| crossover(p))
+        .fold(0.0_f64, f64::max);
     assert!(best >= 1600.0);
 }

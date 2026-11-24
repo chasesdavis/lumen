@@ -2,15 +2,15 @@
 //! OrbitAPI client, plus Lumen-only endpoints: MCP token issue and
 //! storage usage reporting for metered billing.
 
+use crate::auth::{self, Claims, KeyMaterial};
+use crate::usage::UsageLedger;
+use crate::users::UserStore;
+use axum::http::StatusCode;
 use axum::routing::{get, post};
 use axum::Json;
-use axum::http::StatusCode;
+use lumen_core::changelog::ChangeLog;
 use serde::Deserialize;
 use serde_json::{json, Value};
-use crate::auth::{self, Claims, KeyMaterial};
-use lumen_core::changelog::ChangeLog;
-use crate::users::UserStore;
-use crate::usage::UsageLedger;
 use std::sync::Arc;
 
 pub struct AppState {
@@ -43,8 +43,19 @@ impl AppState {
     }
 
     /// Production-style state over a specific changelog and stores.
-    pub fn new(changes: Arc<ChangeLog>, keys: KeyMaterial, users: UserStore, usage: UsageLedger) -> Self {
-        Self { changes, keys, users, usage, dodo_webhook_key: "whsec_lumen_dev_placeholder".into() }
+    pub fn new(
+        changes: Arc<ChangeLog>,
+        keys: KeyMaterial,
+        users: UserStore,
+        usage: UsageLedger,
+    ) -> Self {
+        Self {
+            changes,
+            keys,
+            users,
+            usage,
+            dodo_webhook_key: "whsec_lumen_dev_placeholder".into(),
+        }
     }
 
     /// Full production constructor including the Dodo webhook key.
@@ -55,7 +66,10 @@ impl AppState {
 }
 
 #[derive(Deserialize)]
-pub struct LoginRequest { pub email: String, pub password: String }
+pub struct LoginRequest {
+    pub email: String,
+    pub password: String,
+}
 
 pub async fn signup(
     state: axum::extract::State<SharedState>,
@@ -66,9 +80,10 @@ pub async fn signup(
         Err(lumen_core::error::LumenError::Conflict(msg)) => {
             Err((StatusCode::CONFLICT, Json(json!({"error": msg}))))
         }
-        Err(e) => {
-            Err((StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))))
-        }
+        Err(e) => Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({"error": e.to_string()})),
+        )),
     }
 }
 
@@ -76,10 +91,12 @@ pub async fn login(
     state: axum::extract::State<SharedState>,
     Json(req): Json<LoginRequest>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    let user = state
-        .users
-        .login(&req.email, &req.password)
-        .map_err(|_| (StatusCode::UNAUTHORIZED, Json(json!({"error": "invalid email or password"}))))?;
+    let user = state.users.login(&req.email, &req.password).map_err(|_| {
+        (
+            StatusCode::UNAUTHORIZED,
+            Json(json!({"error": "invalid email or password"})),
+        )
+    })?;
     let access = Claims::new_access(&user.id, &user.email);
     let refresh = Claims::new_refresh(&user.id, &user.email);
     let at = auth::issue(&access, &state.keys).unwrap_or_default();
@@ -152,7 +169,9 @@ pub struct FileUpsertRequest {
     pub chunks: Vec<lumen_core::metadata::ChunkRef>,
 }
 
-fn default_size() -> u64 { 0 }
+fn default_size() -> u64 {
+    0
+}
 
 /// Record a file/folder upsert into the ordered changelog. Clients that
 /// persisted a cursor pick this up on the next /v1/changes pull - the same
@@ -175,24 +194,30 @@ pub async fn file_upsert(
         created_at: now,
         modified_at: now,
     };
-    let seq = state
-        .changes
-        .record_upsert(item)
-        .map_err(|_| (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": "changelog append failed"}))))?;
+    let seq = state.changes.record_upsert(item).map_err(|_| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({"error": "changelog append failed"})),
+        )
+    })?;
     Ok(Json(json!({ "id": req.id.to_string(), "seq": seq })))
 }
 
 #[derive(Deserialize)]
-pub struct FileDeleteRequest { pub id: uuid::Uuid }
+pub struct FileDeleteRequest {
+    pub id: uuid::Uuid,
+}
 
 pub async fn file_delete(
     state: axum::extract::State<SharedState>,
     Json(req): Json<FileDeleteRequest>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    state
-        .changes
-        .record_removal(req.id)
-        .map_err(|_| (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": "changelog append failed"}))))?;
+    state.changes.record_removal(req.id).map_err(|_| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({"error": "changelog append failed"})),
+        )
+    })?;
     Ok(Json(json!({ "id": req.id.to_string(), "removed": true })))
 }
 
@@ -210,13 +235,16 @@ pub async fn dodo_webhook(
         .duration_since(std::time::UNIX_EPOCH)
         .map(|d| d.as_secs())
         .unwrap_or(0);
-    let hook_headers = crate::dodo::WebhookHeaders::from_headers(&headers)
-        .map_err(|_| StatusCode::BAD_REQUEST)?;
+    let hook_headers =
+        crate::dodo::WebhookHeaders::from_headers(&headers).map_err(|_| StatusCode::BAD_REQUEST)?;
     crate::dodo::verify_webhook(&state.dodo_webhook_key, &hook_headers, body.as_bytes(), now)
         .map_err(|_| StatusCode::BAD_REQUEST)?;
-    let evt: crate::dodo::DodoEvent = serde_json::from_str(&body).map_err(|_| StatusCode::BAD_REQUEST)?;
+    let evt: crate::dodo::DodoEvent =
+        serde_json::from_str(&body).map_err(|_| StatusCode::BAD_REQUEST)?;
     match evt.event_type.as_str() {
-        crate::dodo::EVENT_PAYMENT_SUCCEEDED | crate::dodo::EVENT_SUBSCRIPTION_ACTIVE | crate::dodo::EVENT_SUBSCRIPTION_RENEWED => {
+        crate::dodo::EVENT_PAYMENT_SUCCEEDED
+        | crate::dodo::EVENT_SUBSCRIPTION_ACTIVE
+        | crate::dodo::EVENT_SUBSCRIPTION_RENEWED => {
             // Subscription fulfillment: match evt.data.customer_id against the
             // users.dodo_customer_id column and grant plan access. Unknown
             // customers still 200 - Dodo retries would not fix a mapping that
@@ -228,7 +256,9 @@ pub async fn dodo_webhook(
                 .and_then(|d| d.get("customer_id"))
                 .and_then(|v| v.as_str())
                 .map(|cid| {
-                    state.users.grant_plan_by_dodo_customer(cid, crate::users::Plan::Base)
+                    state
+                        .users
+                        .grant_plan_by_dodo_customer(cid, crate::users::Plan::Base)
                 });
             match fulfilled {
                 Some(Ok(true)) => Ok(Json(json!({ "received": true, "fulfilled": true }))),
@@ -255,7 +285,9 @@ pub async fn usage(
     }
     let claims = auth::verify(token, auth::TokenScope::Access, &state.keys)
         .map_err(|_| StatusCode::UNAUTHORIZED)?;
-    let (stored, retrieved) = state.usage.current_period_usage(&claims.sub)
+    let (stored, retrieved) = state
+        .usage
+        .current_period_usage(&claims.sub)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     Ok(Json(json!({
         "storage_bytes": stored,

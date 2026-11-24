@@ -44,7 +44,11 @@ impl Default for ChangeLog {
 impl ChangeLog {
     pub fn new(capacity: usize) -> Self {
         Self {
-            inner: Mutex::new(Inner { next_seq: 1, entries: Vec::new(), capacity }),
+            inner: Mutex::new(Inner {
+                next_seq: 1,
+                entries: Vec::new(),
+                capacity,
+            }),
         }
     }
 
@@ -107,7 +111,12 @@ impl ChangeLog {
         let inner = self.inner.lock().expect("changelog poisoned");
         let start = inner.entries.partition_point(|e| e.seq <= cursor);
         if start >= inner.entries.len() {
-            return Ok(ChangePage { cursor, more: false, upserts: Vec::new(), removals: Vec::new() });
+            return Ok(ChangePage {
+                cursor,
+                more: false,
+                upserts: Vec::new(),
+                removals: Vec::new(),
+            });
         }
         let end = (start + limit).min(inner.entries.len());
         let slice = &inner.entries[start..end];
@@ -120,7 +129,12 @@ impl ChangeLog {
                 Change::Removal(id) => removals.push(*id),
             }
         }
-        Ok(ChangePage { cursor: last_seq, more: end < inner.entries.len(), upserts, removals })
+        Ok(ChangePage {
+            cursor: last_seq,
+            more: end < inner.entries.len(),
+            upserts,
+            removals,
+        })
     }
 }
 
@@ -148,8 +162,8 @@ impl ChangeFeed for std::sync::Arc<ChangeLog> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::metadata::ItemType;
     use crate::error::LumenError;
+    use crate::metadata::ItemType;
 
     fn item(id: u128, name: &str) -> RemoteItem {
         RemoteItem {
@@ -206,7 +220,11 @@ mod tests {
     #[test]
     fn append_batch_commits_in_arrival_order_and_skips_seq_on_empty() {
         let log = ChangeLog::default();
-        assert_eq!(log.append_batch(Vec::new()).unwrap(), 0, "empty batch is a no-op");
+        assert_eq!(
+            log.append_batch(Vec::new()).unwrap(),
+            0,
+            "empty batch is a no-op"
+        );
         assert_eq!(log.latest_seq(), 0);
         let mut batch = Vec::new();
         for name in ["x.md", "y.md", "z.md"] {
@@ -251,9 +269,6 @@ mod tests {
         let engine = SyncEngine::new(log.clone()).with_shared_index(index.clone());
         engine.pull_all(16).await.unwrap();
 
-        assert!(matches!(
-            index.get_item(&id),
-            Err(LumenError::NotFound(_))
-        ));
+        assert!(matches!(index.get_item(&id), Err(LumenError::NotFound(_))));
     }
 }

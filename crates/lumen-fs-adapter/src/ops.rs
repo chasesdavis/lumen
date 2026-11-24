@@ -10,9 +10,9 @@
 //! - "." collapses away; ".." never escapes (resolution clamps at root)
 
 use lumen_core::error::LumenError;
-use lumen_core::upload::CommitBatcher;
 use lumen_core::index::MetadataIndex;
 use lumen_core::metadata::{ItemType, RemoteItem};
+use lumen_core::upload::CommitBatcher;
 use lumen_fsprobe::vfs::VfsOps;
 use std::sync::Arc;
 
@@ -69,13 +69,25 @@ impl MountOps {
     pub fn new(index: Arc<MetadataIndex>, vfs: Arc<VfsOps>) -> Self {
         let log = std::sync::Arc::new(lumen_core::ChangeLog::default());
         let commits = CommitBatcher::new(log);
-        Self { index, vfs, commits }
+        Self {
+            index,
+            vfs,
+            commits,
+        }
     }
 
     /// Test/production constructor with an explicit shared changelog so the
     /// commit path feeds the same log the API sync handlers read from.
-    pub fn with_changelog(index: Arc<MetadataIndex>, vfs: Arc<VfsOps>, log: std::sync::Arc<lumen_core::ChangeLog>) -> Self {
-        Self { index, vfs, commits: CommitBatcher::new(log) }
+    pub fn with_changelog(
+        index: Arc<MetadataIndex>,
+        vfs: Arc<VfsOps>,
+        log: std::sync::Arc<lumen_core::ChangeLog>,
+    ) -> Self {
+        Self {
+            index,
+            vfs,
+            commits: CommitBatcher::new(log),
+        }
     }
 
     /// Flush all pending metadata upserts into the changelog. Platform
@@ -96,7 +108,9 @@ impl MountOps {
             match seg {
                 "" | "." => continue,
                 // Clamp at root like POSIX inside one mount - never escape.
-                ".." => { out.pop(); }
+                ".." => {
+                    out.pop();
+                }
                 s => out.push(s),
             }
         }
@@ -143,7 +157,11 @@ impl MountOps {
         if !matches!(dir.item_type, ItemType::Folder) {
             return Err(AdapterError::NotADirectory);
         }
-        let parent = if dir.id == uuid::Uuid::nil() { None } else { Some(dir.id) };
+        let parent = if dir.id == uuid::Uuid::nil() {
+            None
+        } else {
+            Some(dir.id)
+        };
         let children = self.index.children(parent.as_ref())?;
         Ok(children.into_iter().map(|i| item_stat(&i)).collect())
     }
@@ -167,19 +185,30 @@ impl MountOps {
     /// Whole-file write used by create flows: chunk, encrypt, upload and
     /// return the chunk list the caller upserts into index + changelog.
     /// Storage-only on purpose so no write path bypasses VFS caching rules.
-    pub async fn write_full(&self, data: Vec<u8>) -> Result<Vec<lumen_core::chunking::Chunk>, AdapterError> {
+    pub async fn write_full(
+        &self,
+        data: Vec<u8>,
+    ) -> Result<Vec<lumen_core::chunking::Chunk>, AdapterError> {
         Ok(self.vfs.write_full(data).await?)
     }
 
     /// Lookup one child by name under a resolved directory - the hot path
     /// every FUSE lookup callback drives. Returns None when absent instead
     /// of erroring so platform code maps it straight to ENOENT/null attrs.
-    pub async fn lookup(&self, parent_path: &str, name: &str) -> Result<Option<Stat>, AdapterError> {
+    pub async fn lookup(
+        &self,
+        parent_path: &str,
+        name: &str,
+    ) -> Result<Option<Stat>, AdapterError> {
         let dir = self.resolve(parent_path).await?;
         if !matches!(dir.item_type, ItemType::Folder) {
             return Err(AdapterError::NotADirectory);
         }
-        let parent = if dir.id == uuid::Uuid::nil() { None } else { Some(dir.id) };
+        let parent = if dir.id == uuid::Uuid::nil() {
+            None
+        } else {
+            Some(dir.id)
+        };
         Ok(self
             .index
             .children(parent.as_ref())?
@@ -192,20 +221,32 @@ impl MountOps {
     /// one step: chunk, encrypt, upload through VFS, then register the item
     /// in the metadata index and queue its changelog upsert in CommitBatcher.
     /// Fails with AlreadyExists if a same-name entry is present.
-    pub async fn create(&self, parent_path: &str, name: &str, data: Vec<u8>) -> Result<Stat, AdapterError> {
+    pub async fn create(
+        &self,
+        parent_path: &str,
+        name: &str,
+        data: Vec<u8>,
+    ) -> Result<Stat, AdapterError> {
         if self.lookup(parent_path, name).await?.is_some() {
             return Err(AdapterError::AlreadyExists);
         }
         let chunks = self.vfs.write_full(data).await?;
         let dir = self.resolve(parent_path).await?;
-        let parent = if dir.id == uuid::Uuid::nil() { None } else { Some(dir.id) };
+        let parent = if dir.id == uuid::Uuid::nil() {
+            None
+        } else {
+            Some(dir.id)
+        };
         let size: u64 = chunks.iter().map(|c| c.len).sum();
-        let refs: Vec<lumen_core::metadata::ChunkRef> = chunks.iter().map(|c| lumen_core::metadata::ChunkRef {
-            key: c.storage_key(),
-            offset: c.offset,
-            len: c.len,
-            fingerprint: c.fingerprint,
-        }).collect();
+        let refs: Vec<lumen_core::metadata::ChunkRef> = chunks
+            .iter()
+            .map(|c| lumen_core::metadata::ChunkRef {
+                key: c.storage_key(),
+                offset: c.offset,
+                len: c.len,
+                fingerprint: c.fingerprint,
+            })
+            .collect();
         let item = RemoteItem {
             id: uuid::Uuid::new_v4(),
             parent_id: parent,
@@ -232,7 +273,11 @@ impl MountOps {
             return Err(AdapterError::AlreadyExists);
         }
         let dir = self.resolve(parent_path).await?;
-        let parent = if dir.id == uuid::Uuid::nil() { None } else { Some(dir.id) };
+        let parent = if dir.id == uuid::Uuid::nil() {
+            None
+        } else {
+            Some(dir.id)
+        };
         let item = RemoteItem {
             id: uuid::Uuid::new_v4(),
             parent_id: parent,
@@ -260,12 +305,15 @@ impl MountOps {
         }
         let chunks = self.vfs.write_full(data).await?;
         let size: u64 = chunks.iter().map(|c| c.len).sum();
-        let refs: Vec<lumen_core::metadata::ChunkRef> = chunks.iter().map(|c| lumen_core::metadata::ChunkRef {
-            key: c.storage_key(),
-            offset: c.offset,
-            len: c.len,
-            fingerprint: c.fingerprint,
-        }).collect();
+        let refs: Vec<lumen_core::metadata::ChunkRef> = chunks
+            .iter()
+            .map(|c| lumen_core::metadata::ChunkRef {
+                key: c.storage_key(),
+                offset: c.offset,
+                len: c.len,
+                fingerprint: c.fingerprint,
+            })
+            .collect();
         let updated = RemoteItem {
             id: existing.id,
             parent_id: existing.parent_id,
@@ -341,7 +389,12 @@ mod tests {
         let crypto = ChunkCrypto::from_password("test-pw", b"adapter-salt");
         let vfs = Arc::new(VfsOps::new(store.clone(), crypto));
         let ops = MountOps::new(index.clone(), vfs.clone());
-        Fixture { ops, store, vfs, index }
+        Fixture {
+            ops,
+            store,
+            vfs,
+            index,
+        }
     }
 
     fn folder_item(name: &str, parent: Option<uuid::Uuid>) -> RemoteItem {
@@ -368,26 +421,31 @@ mod tests {
         data: Vec<u8>,
     ) -> uuid::Uuid {
         let chunks = f.vfs.write_full(data).await.unwrap();
-        let refs: Vec<ChunkRef> = chunks.iter().map(|c| ChunkRef {
-            key: c.storage_key(),
-            offset: c.offset,
-            len: c.len,
-            fingerprint: c.fingerprint,
-        }).collect();
+        let refs: Vec<ChunkRef> = chunks
+            .iter()
+            .map(|c| ChunkRef {
+                key: c.storage_key(),
+                offset: c.offset,
+                len: c.len,
+                fingerprint: c.fingerprint,
+            })
+            .collect();
         let size = refs.iter().map(|r| r.len).sum();
         let id = uuid::Uuid::new_v4();
-        f.index.upsert(&RemoteItem {
-            id,
-            parent_id: parent,
-            name: name.to_string(),
-            item_type: ItemType::File,
-            size,
-            content_version: 1,
-            metadata_version: 1,
-            chunks: refs,
-            created_at: Utc::now(),
-            modified_at: Utc::now(),
-        }).unwrap();
+        f.index
+            .upsert(&RemoteItem {
+                id,
+                parent_id: parent,
+                name: name.to_string(),
+                item_type: ItemType::File,
+                size,
+                content_version: 1,
+                metadata_version: 1,
+                chunks: refs,
+                created_at: Utc::now(),
+                modified_at: Utc::now(),
+            })
+            .unwrap();
         id
     }
 
@@ -414,8 +472,14 @@ mod tests {
         f.index.upsert(&docs).unwrap();
         seed_file(&f, "readme.md", Some(docs_id), b"lumen readme".to_vec()).await;
 
-        let names: Vec<String> = f.ops.readdir("/").await.unwrap().into_iter()
-            .map(|s| s.name).collect();
+        let names: Vec<String> = f
+            .ops
+            .readdir("/")
+            .await
+            .unwrap()
+            .into_iter()
+            .map(|s| s.name)
+            .collect();
         assert_eq!(names, vec!["docs"]);
 
         let docs_entries = f.ops.readdir("/docs").await.unwrap();
@@ -455,7 +519,12 @@ mod tests {
         seed_file(&f, "a.txt", Some(docs_id), b"hello".to_vec()).await;
 
         // Hot-path semantics: absent child is None, not an error.
-        assert!(f.ops.lookup("/docs", "missing.txt").await.unwrap().is_none());
+        assert!(f
+            .ops
+            .lookup("/docs", "missing.txt")
+            .await
+            .unwrap()
+            .is_none());
         let hit = f.ops.lookup("/docs", "a.txt").await.unwrap().unwrap();
         assert_eq!(hit.name, "a.txt");
         assert!(!hit.is_dir);
@@ -476,13 +545,25 @@ mod tests {
 
         // Missing intermediate directory -> NotFound, not NotADirectory:
         // resolution walks segment by segment like the kernel would.
-        assert!(matches!(f.ops.resolve("/nope/file").await, Err(AdapterError::NotFound)));
-        assert!(matches!(f.ops.getattr("/nope").await, Err(AdapterError::NotFound)));
+        assert!(matches!(
+            f.ops.resolve("/nope/file").await,
+            Err(AdapterError::NotFound)
+        ));
+        assert!(matches!(
+            f.ops.getattr("/nope").await,
+            Err(AdapterError::NotFound)
+        ));
 
         // readdir of a file -> ENOTDIR
-        assert!(matches!(f.ops.readdir("/file.bin").await, Err(AdapterError::NotADirectory)));
+        assert!(matches!(
+            f.ops.readdir("/file.bin").await,
+            Err(AdapterError::NotADirectory)
+        ));
         // read of a folder -> EISDIR
-        assert!(matches!(f.ops.read("/", 0, 4).await, Err(AdapterError::IsADirectory)));
+        assert!(matches!(
+            f.ops.read("/", 0, 4).await,
+            Err(AdapterError::IsADirectory)
+        ));
         // read past EOF returns empty bytes without error, like read(2)
         let tail = f.ops.read("/file.bin", 999, 10).await.unwrap();
         assert!(tail.is_empty());
@@ -494,10 +575,17 @@ mod tests {
 
         // Three files written through the full VFS path (chunk, encrypt,
         // upload, dedup-check) before any metadata commit happens.
-        f.ops.create("/", "one.txt", b"alpha".to_vec()).await.unwrap();
-        f.ops.create("/", "two.txt", b"beta".to_vec()).await.unwrap();
+        f.ops
+            .create("/", "one.txt", b"alpha".to_vec())
+            .await
+            .unwrap();
+        f.ops
+            .create("/", "two.txt", b"beta".to_vec())
+            .await
+            .unwrap();
         // Create under a file path must fail like POSIX would.
-        f.ops.create("/two.txt", "child.txt", b"gamma".to_vec())
+        f.ops
+            .create("/two.txt", "child.txt", b"gamma".to_vec())
             .await
             .unwrap_err();
 
@@ -531,12 +619,19 @@ mod tests {
         assert_eq!(hit.item_id, a.item_id);
 
         // replace() succeeds and bumps version counters.
-        let replaced = f.ops.replace("/a.txt", b"much longer second".to_vec()).await.unwrap();
+        let replaced = f
+            .ops
+            .replace("/a.txt", b"much longer second".to_vec())
+            .await
+            .unwrap();
         assert_eq!(replaced.size, "much longer second".len() as u64);
 
         // Content-addressed storage means the identical rewrite re-uploads
         // nothing; every chunk dedup-hits via object head checks.
-        f.ops.replace("/a.txt", b"much longer second".to_vec()).await.unwrap();
+        f.ops
+            .replace("/a.txt", b"much longer second".to_vec())
+            .await
+            .unwrap();
     }
 
     #[tokio::test]

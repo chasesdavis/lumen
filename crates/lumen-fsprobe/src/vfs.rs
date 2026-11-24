@@ -9,8 +9,8 @@ use lumen_core::cache::ChunkCache;
 use lumen_core::chunking::Chunk;
 use lumen_core::crypto::ChunkCrypto;
 use lumen_core::error::{LumenError, Result};
-use lumen_core::meter::{UsageEvent, UsageMeter};
 use lumen_core::metadata::RemoteItem;
+use lumen_core::meter::{UsageEvent, UsageMeter};
 use lumen_core::prefetch::Prefetcher;
 use lumen_core::store::ObjectStore;
 use std::sync::Arc;
@@ -58,17 +58,22 @@ impl VfsOps {
                 .ok_or_else(|| LumenError::NotFound(format!("no chunk covers offset {}", pos)))?;
             let within = (pos - cref.offset) as usize;
             let take = ((cref.offset + cref.len) - pos).min(end - pos) as usize;
-            self.prefetcher.observe_read(item.id, chunk_index_of(item, pos));
+            self.prefetcher
+                .observe_read(item.id, chunk_index_of(item, pos));
             if let Some(data) = self.cache.get(&cref.key) {
                 buf.extend_from_slice(&data[within..within + take]);
             } else {
                 let blob = self.store.get(&cref.key).await?;
-                self.meter.report(UsageEvent { stored_bytes: 0, retrieved_bytes: blob.len() as u64 });
+                self.meter.report(UsageEvent {
+                    stored_bytes: 0,
+                    retrieved_bytes: blob.len() as u64,
+                });
                 let plain = self.crypto.decrypt_chunk(&blob, &cref.fingerprint)?;
                 buf.extend_from_slice(&plain[within..within + take]);
                 self.cache.put(&cref.key, plain.clone());
                 // Sequential-access bonus fires once per chunk via index signal.
-                self.prefetcher.observe_read(item.id, chunk_index_of(item, pos));
+                self.prefetcher
+                    .observe_read(item.id, chunk_index_of(item, pos));
             }
             pos += take as u64;
         }
@@ -79,7 +84,10 @@ impl VfsOps {
             if let Some(cref) = item.chunks.get(idx as usize) {
                 if !self.cache.contains(&cref.key) {
                     if let Ok(blob) = self.store.get(&cref.key).await {
-                        self.meter.report(UsageEvent { stored_bytes: 0, retrieved_bytes: blob.len() as u64 });
+                        self.meter.report(UsageEvent {
+                            stored_bytes: 0,
+                            retrieved_bytes: blob.len() as u64,
+                        });
                         if let Ok(plain) = self.crypto.decrypt_chunk(&blob, &cref.fingerprint) {
                             self.cache.put(&cref.key, plain);
                         }
@@ -106,11 +114,16 @@ impl VfsOps {
                 Err(LumenError::Storage(_) | LumenError::NotFound(_)) => {
                     let start = c.offset as usize;
                     let end = start + c.len as usize;
-                    let ct = self.crypto.encrypt_chunk(&data[start..end], &c.fingerprint)?;
+                    let ct = self
+                        .crypto
+                        .encrypt_chunk(&data[start..end], &c.fingerprint)?;
                     let ct_len = ct.len() as u64;
                     self.store.put(&key, ct.into()).await?;
                     // Dedup hits upload nothing; only fresh objects count.
-                    self.meter.report(UsageEvent { stored_bytes: ct_len, retrieved_bytes: 0 });
+                    self.meter.report(UsageEvent {
+                        stored_bytes: ct_len,
+                        retrieved_bytes: 0,
+                    });
                 }
                 Err(e) => return Err(e),
             }
@@ -186,18 +199,27 @@ mod tests {
 
         let data = vec![b'a'; 300 * 1024];
         let chunks = vfs.write_full(data.clone()).await.unwrap();
-        assert_eq!(chunks.iter().map(|c| c.len as usize).sum::<usize>(), data.len());
+        assert_eq!(
+            chunks.iter().map(|c| c.len as usize).sum::<usize>(),
+            data.len()
+        );
         assert!(!store.map.lock().unwrap().is_empty());
 
         let item = make_item_from_chunks(&chunks);
         let got = vfs.read(&item, 0, data.len() as u64).await.unwrap();
         assert_eq!(got, data);
-        assert_eq!(store.get_calls.load(std::sync::atomic::Ordering::Relaxed), chunks.len() as u64);
+        assert_eq!(
+            store.get_calls.load(std::sync::atomic::Ordering::Relaxed),
+            chunks.len() as u64
+        );
 
         // Second read must be served entirely from cache without new fetches.
         let cached = vfs.read(&item, 0, data.len() as u64).await.unwrap();
         assert_eq!(cached, data);
-        assert_eq!(store.get_calls.load(std::sync::atomic::Ordering::Relaxed), chunks.len() as u64);
+        assert_eq!(
+            store.get_calls.load(std::sync::atomic::Ordering::Relaxed),
+            chunks.len() as u64
+        );
         // First read misses every chunk; second read hits all of them.
         assert!((vfs.cache_hit_rate() - 0.5).abs() < f64::EPSILON);
     }
@@ -253,8 +275,7 @@ mod tests {
         let sink_events = events.clone();
         let sink: lumen_core::meter::UsageSink =
             std::sync::Arc::new(move |e| sink_events.lock().unwrap().push(e));
-        let vfs = VfsOps::new(store, crypto)
-            .with_meter(UsageMeter::disabled().with_sink(sink));
+        let vfs = VfsOps::new(store, crypto).with_meter(UsageMeter::disabled().with_sink(sink));
 
         let data = vec![b'm'; 300 * 1024];
         let chunks = vfs.write_full(data.clone()).await.unwrap();
@@ -263,7 +284,9 @@ mod tests {
         {
             let evs = events.lock().unwrap().clone();
             assert!(!evs.is_empty());
-            assert!(evs.iter().all(|e| e.retrieved_bytes == 0 && e.stored_bytes > 0));
+            assert!(evs
+                .iter()
+                .all(|e| e.retrieved_bytes == 0 && e.stored_bytes > 0));
         }
         assert!(vfs.meter().stored() > 0);
 
@@ -279,8 +302,13 @@ mod tests {
         {
             let evs = events.lock().unwrap().clone();
             assert!(!evs.is_empty());
-            assert!(evs.iter().all(|e| e.stored_bytes == 0 && e.retrieved_bytes > 0));
-            assert_eq!(evs.iter().map(|e| e.retrieved_bytes).sum::<u64>(), vfs.meter().retrieved());
+            assert!(evs
+                .iter()
+                .all(|e| e.stored_bytes == 0 && e.retrieved_bytes > 0));
+            assert_eq!(
+                evs.iter().map(|e| e.retrieved_bytes).sum::<u64>(),
+                vfs.meter().retrieved()
+            );
         }
     }
 
@@ -306,7 +334,10 @@ mod tests {
 
         // Continue reading: warmed chunks must come from cache; the only
         // new storage get (if any) is a speculative fetch still pending.
-        let rest = vfs.read(&item, first_len, item.size - first_len).await.unwrap();
+        let rest = vfs
+            .read(&item, first_len, item.size - first_len)
+            .await
+            .unwrap();
         assert_eq!(rest.len() as u64, item.size - first_len);
         let gets_after_second = store.get_calls.load(std::sync::atomic::Ordering::Relaxed);
 

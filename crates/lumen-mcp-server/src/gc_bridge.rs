@@ -34,12 +34,16 @@ pub fn gc_run_blocking(
     meter: &UsageMeter,
 ) -> Result<GcReport> {
     match tokio::runtime::Handle::try_current() {
-        Ok(_) if tokio::runtime::Handle::current().runtime_flavor()
-            == tokio::runtime::RuntimeFlavor::MultiThread =>
+        Ok(_)
+            if tokio::runtime::Handle::current().runtime_flavor()
+                == tokio::runtime::RuntimeFlavor::MultiThread =>
         {
             tokio::task::block_in_place(|| {
-                tokio::runtime::Handle::current()
-                    .block_on(gc_and_report(index, store.clone(), meter))
+                tokio::runtime::Handle::current().block_on(gc_and_report(
+                    index,
+                    store.clone(),
+                    meter,
+                ))
             })
         }
         Ok(_) => futures::executor::block_on(gc_and_report(index, store.clone(), meter)),

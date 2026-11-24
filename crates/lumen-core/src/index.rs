@@ -8,7 +8,9 @@ use rusqlite::{params, Connection};
 use std::path::Path;
 use std::sync::Mutex;
 
-pub struct MetadataIndex { conn: Mutex<Connection> }
+pub struct MetadataIndex {
+    conn: Mutex<Connection>,
+}
 
 impl MetadataIndex {
     pub fn open<P: AsRef<Path>>(path: P) -> Result<Self> {
@@ -43,14 +45,17 @@ impl MetadataIndex {
                 body TEXT NOT NULL,
                 PRIMARY KEY (item_id)
             );
-            CREATE INDEX IF NOT EXISTS idx_content_body ON content_index(body);"
-        ).map_err(|e| LumenError::Storage(e.to_string()))?;
-        Ok(Self { conn: Mutex::new(conn) })
+            CREATE INDEX IF NOT EXISTS idx_content_body ON content_index(body);",
+        )
+        .map_err(|e| LumenError::Storage(e.to_string()))?;
+        Ok(Self {
+            conn: Mutex::new(conn),
+        })
     }
 
     pub fn upsert(&self, item: &RemoteItem) -> Result<()> {
-        let chunks = serde_json::to_string(&item.chunks)
-            .map_err(|e| LumenError::Storage(e.to_string()))?;
+        let chunks =
+            serde_json::to_string(&item.chunks).map_err(|e| LumenError::Storage(e.to_string()))?;
         let conn = self.conn.lock().expect("index poisoned");
         conn.execute(
             "INSERT INTO items (id, parent_id, name, item_type, size, content_version, metadata_version, chunks_json, created_at, modified_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10) ON CONFLICT(id) DO UPDATE SET parent_id=?2, name=?3, size=?5, content_version=?6, metadata_version=?7, chunks_json=?8, modified_at=?10",
@@ -71,8 +76,11 @@ impl MetadataIndex {
         let conn = self.conn.lock().expect("index poisoned");
         conn.execute("DELETE FROM items WHERE id = ?1", params![id.to_string()])
             .map_err(|e| LumenError::Storage(e.to_string()))?;
-        conn.execute("DELETE FROM content_index WHERE item_id = ?1", params![id.to_string()])
-            .map_err(|e| LumenError::Storage(e.to_string()))?;
+        conn.execute(
+            "DELETE FROM content_index WHERE item_id = ?1",
+            params![id.to_string()],
+        )
+        .map_err(|e| LumenError::Storage(e.to_string()))?;
         Ok(())
     }
 
@@ -83,10 +91,15 @@ impl MetadataIndex {
     /// the object store, the local SQLite file uses OS-level protection.
     pub fn index_content(&self, id: &uuid::Uuid, body: &str) -> Result<()> {
         let mut conn = self.conn.lock().expect("index poisoned");
-        let tx = conn.transaction().map_err(|e| LumenError::Storage(e.to_string()))?;
+        let tx = conn
+            .transaction()
+            .map_err(|e| LumenError::Storage(e.to_string()))?;
         if body.is_empty() {
-            tx.execute("DELETE FROM content_index WHERE item_id = ?1", params![id.to_string()])
-                .map_err(|e| LumenError::Storage(e.to_string()))?;
+            tx.execute(
+                "DELETE FROM content_index WHERE item_id = ?1",
+                params![id.to_string()],
+            )
+            .map_err(|e| LumenError::Storage(e.to_string()))?;
         } else {
             tx.execute(
                 "INSERT INTO content_index (item_id, body) VALUES (?1, ?2) ON CONFLICT(item_id) DO UPDATE SET body=?2",
@@ -102,9 +115,11 @@ impl MetadataIndex {
         let mut stmt = conn.prepare(
             "SELECT id, parent_id, name, item_type, size, content_version, metadata_version, chunks_json, created_at, modified_at FROM items WHERE name LIKE ?1 ESCAPE '\\' ORDER BY modified_at DESC LIMIT ?2",
         ).map_err(|e| LumenError::Storage(e.to_string()))?;
-        let rows = stmt.query_map(params![pat, limit as i64], row_to_item)
+        let rows = stmt
+            .query_map(params![pat, limit as i64], row_to_item)
             .map_err(|e| LumenError::Storage(e.to_string()))?;
-        rows.collect::<std::result::Result<Vec<_>, _>>().map_err(|e| LumenError::Storage(e.to_string()))
+        rows.collect::<std::result::Result<Vec<_>, _>>()
+            .map_err(|e| LumenError::Storage(e.to_string()))
     }
 
     pub fn children(&self, parent: Option<&uuid::Uuid>) -> Result<Vec<RemoteItem>> {
@@ -113,9 +128,11 @@ impl MetadataIndex {
             "SELECT id, parent_id, name, item_type, size, content_version, metadata_version, chunks_json, created_at, modified_at FROM items WHERE parent_id IS ?1 ORDER BY name ASC",
         ).map_err(|e| LumenError::Storage(e.to_string()))?;
         let pid = parent.map(|p| p.to_string());
-        let rows = stmt.query_map(params![pid], row_to_item)
+        let rows = stmt
+            .query_map(params![pid], row_to_item)
             .map_err(|e| LumenError::Storage(e.to_string()))?;
-        rows.collect::<std::result::Result<Vec<_>, _>>().map_err(|e| LumenError::Storage(e.to_string()))
+        rows.collect::<std::result::Result<Vec<_>, _>>()
+            .map_err(|e| LumenError::Storage(e.to_string()))
     }
 
     /// Fetch a single item by id. Powers MCP file_metadata lookups.
@@ -124,7 +141,8 @@ impl MetadataIndex {
         let mut stmt = conn.prepare(
             "SELECT id, parent_id, name, item_type, size, content_version, metadata_version, chunks_json, created_at, modified_at FROM items WHERE id = ?1",
         ).map_err(|e| LumenError::Storage(e.to_string()))?;
-        let mut rows = stmt.query_map(params![id.to_string()], row_to_item)
+        let mut rows = stmt
+            .query_map(params![id.to_string()], row_to_item)
             .map_err(|e| LumenError::Storage(e.to_string()))?;
         match rows.next() {
             Some(item) => item.map_err(|e| LumenError::Storage(e.to_string())),
@@ -143,9 +161,11 @@ impl MetadataIndex {
              FROM items i JOIN content_index c ON c.item_id = i.id \
              WHERE c.body LIKE ?1 ESCAPE '\\' ORDER BY i.modified_at DESC LIMIT ?2",
         ).map_err(|e| LumenError::Storage(e.to_string()))?;
-        let rows = stmt.query_map(params![pat, limit as i64], row_to_item)
+        let rows = stmt
+            .query_map(params![pat, limit as i64], row_to_item)
             .map_err(|e| LumenError::Storage(e.to_string()))?;
-        rows.collect::<std::result::Result<Vec<_>, _>>().map_err(|e| LumenError::Storage(e.to_string()))
+        rows.collect::<std::result::Result<Vec<_>, _>>()
+            .map_err(|e| LumenError::Storage(e.to_string()))
     }
 
     /// Every storage key referenced by any live item's chunk list. The GC
@@ -188,13 +208,19 @@ fn row_to_item(row: &rusqlite::Row) -> rusqlite::Result<RemoteItem> {
         id: uuid::Uuid::parse_str(&id).unwrap_or_default(),
         parent_id: parent.and_then(|p| uuid::Uuid::parse_str(&p).ok()),
         name,
-        item_type: if ty == "folder" { ItemType::Folder } else { ItemType::File },
+        item_type: if ty == "folder" {
+            ItemType::Folder
+        } else {
+            ItemType::File
+        },
         size: row.get::<_, i64>(4)? as u64,
         content_version: row.get(5)?,
         metadata_version: row.get(6)?,
         chunks: serde_json::from_str(&row.get::<_, String>(7)?).unwrap_or_default(),
-        created_at: chrono::DateTime::from_timestamp_millis(row.get::<_, i64>(8)?).unwrap_or_default(),
-        modified_at: chrono::DateTime::from_timestamp_millis(row.get::<_, i64>(9)?).unwrap_or_default(),
+        created_at: chrono::DateTime::from_timestamp_millis(row.get::<_, i64>(8)?)
+            .unwrap_or_default(),
+        modified_at: chrono::DateTime::from_timestamp_millis(row.get::<_, i64>(9)?)
+            .unwrap_or_default(),
     })
 }
 
@@ -206,10 +232,16 @@ mod tests {
     fn upsert_search_remove_roundtrip() {
         let ix = MetadataIndex::open_memory().unwrap();
         let mut it = RemoteItem {
-            id: uuid::Uuid::new_v4(), parent_id: None, name: "lumen-notes.md".into(),
-            item_type: ItemType::File, size: 42,
-            content_version: 1, metadata_version: 1, chunks: vec![],
-            created_at: chrono::Utc::now(), modified_at: chrono::Utc::now(),
+            id: uuid::Uuid::new_v4(),
+            parent_id: None,
+            name: "lumen-notes.md".into(),
+            item_type: ItemType::File,
+            size: 42,
+            content_version: 1,
+            metadata_version: 1,
+            chunks: vec![],
+            created_at: chrono::Utc::now(),
+            modified_at: chrono::Utc::now(),
         };
         ix.upsert(&it).unwrap();
         let hits = ix.search_names("notes", 10).unwrap();
@@ -230,16 +262,28 @@ mod tests {
         let ix = MetadataIndex::open_memory().unwrap();
         let now = chrono::Utc::now();
         let a = RemoteItem {
-            id: uuid::Uuid::new_v4(), parent_id: None, name: "a.txt".into(),
-            item_type: ItemType::File, size: 10,
-            content_version: 1, metadata_version: 1, chunks: vec![],
-            created_at: now, modified_at: now,
+            id: uuid::Uuid::new_v4(),
+            parent_id: None,
+            name: "a.txt".into(),
+            item_type: ItemType::File,
+            size: 10,
+            content_version: 1,
+            metadata_version: 1,
+            chunks: vec![],
+            created_at: now,
+            modified_at: now,
         };
         let b = RemoteItem {
-            id: uuid::Uuid::new_v4(), parent_id: None, name: "b.txt".into(),
-            item_type: ItemType::File, size: 10,
-            content_version: 1, metadata_version: 1, chunks: vec![],
-            created_at: now, modified_at: now,
+            id: uuid::Uuid::new_v4(),
+            parent_id: None,
+            name: "b.txt".into(),
+            item_type: ItemType::File,
+            size: 10,
+            content_version: 1,
+            metadata_version: 1,
+            chunks: vec![],
+            created_at: now,
+            modified_at: now,
         };
         ix.upsert(&a).unwrap();
         ix.upsert(&b).unwrap();

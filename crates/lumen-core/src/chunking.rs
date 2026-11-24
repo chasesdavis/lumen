@@ -37,7 +37,10 @@ impl Chunk {
         format!(
             "{}{:02x}{:02x}{:02x}{:02x}/{:016x}",
             CHUNK_KEY_PREFIX,
-            fp[0], fp[1], fp[2], fp[3],
+            fp[0],
+            fp[1],
+            fp[2],
+            fp[3],
             u128::from_be_bytes(fp)
         )
     }

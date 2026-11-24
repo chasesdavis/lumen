@@ -36,8 +36,10 @@ mod contract {
 
         // list prefix scoping
         store.put("other/beta", body(128)).await.unwrap();
-        let keys: Vec<String> = store.list("contract")
-            .await.unwrap()
+        let keys: Vec<String> = store
+            .list("contract")
+            .await
+            .unwrap()
             .into_iter()
             .map(|e: ListEntry| e.key)
             .collect();
@@ -54,7 +56,10 @@ mod contract {
         store.delete("contract/alpha").await.unwrap();
         match store.get("contract/alpha").await {
             Err(LumenError::NotFound(_)) => {}
-            other => panic!("expected NotFound after delete, got {:?}", other.map(|b| b.len())),
+            other => panic!(
+                "expected NotFound after delete, got {:?}",
+                other.map(|b| b.len())
+            ),
         }
         match store.head("contract/alpha").await {
             Err(LumenError::NotFound(_)) => {}
@@ -77,7 +82,9 @@ mod contract {
     async fn s3_contract_against_minio_when_available() {
         // Skip cleanly unless an endpoint is explicitly provided, but probe
         // first when it is: never silently pass on unreachable endpoints.
-        let Ok(endpoint) = std::env::var("MINIO_TEST_ENDPOINT") else { return };
+        let Ok(endpoint) = std::env::var("MINIO_TEST_ENDPOINT") else {
+            return;
+        };
         if endpoint.is_empty() {
             return;
         }

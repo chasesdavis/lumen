@@ -12,7 +12,11 @@ fn main() {
     use clap::Parser;
 
     #[derive(Parser)]
-    #[command(name = "lumen-mount", version, about = "Mount a Lumen drive as a FUSE volume")]
+    #[command(
+        name = "lumen-mount",
+        version,
+        about = "Mount a Lumen drive as a FUSE volume"
+    )]
     struct Args {
         /// Mountpoint directory (e.g. /Volumes/Lumen).
         mountpoint: std::path::PathBuf,
@@ -55,8 +59,12 @@ fn main() {
     rt.block_on(async {
         let index = lumen_core::index::MetadataIndex::open(&args.index_path)
             .expect("failed to open metadata index");
-        let store = build_store(&args.store_endpoint, &args.bucket).await
-            .unwrap_or_else(|e| { eprintln!("store setup failed: {e}"); std::process::exit(1); });
+        let store = build_store(&args.store_endpoint, &args.bucket)
+            .await
+            .unwrap_or_else(|e| {
+                eprintln!("store setup failed: {e}");
+                std::process::exit(1);
+            });
         let vfs = lumen_fsprobe::vfs::VfsOps::new(
             store,
             lumen_core::crypto::ChunkCrypto::from_password(&args.password, b"lumen-mount-salt"),
@@ -95,7 +103,9 @@ async fn build_store(
     // useful for dogfooding and Mac development before provider credentials
     // are wired into a release config. Anything else routes through S3Store.
     if endpoint == "file://" {
-        return Ok(std::sync::Arc::new(lumen_fsprobe::local::LocalObjectStore::open(bucket).map_err(|e| e.to_string())?));
+        return Ok(std::sync::Arc::new(
+            lumen_fsprobe::local::LocalObjectStore::open(bucket).map_err(|e| e.to_string())?,
+        ));
     }
     if endpoint.is_empty() {
         return Err("missing --store-endpoint: pass an S3 endpoint URL or file://".into());

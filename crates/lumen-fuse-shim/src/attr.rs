@@ -15,7 +15,11 @@ pub fn stat_to_attr(stat: Stat, ino: u64) -> fuser::FileAttr {
         mtime,
         ctime: mtime,
         crtime: mtime,
-        kind: if stat.is_dir { fuser::FileType::Directory } else { fuser::FileType::RegularFile },
+        kind: if stat.is_dir {
+            fuser::FileType::Directory
+        } else {
+            fuser::FileType::RegularFile
+        },
         perm: default_perm(stat.is_dir),
         nlink: 1,
         uid: fuser_ll_uid(),
@@ -27,7 +31,11 @@ pub fn stat_to_attr(stat: Stat, ino: u64) -> fuser::FileAttr {
 }
 
 fn default_perm(is_dir: bool) -> u16 {
-    if is_dir { 0o755 } else { 0o644 }
+    if is_dir {
+        0o755
+    } else {
+        0o644
+    }
 }
 
 fn system_time(t: chrono::DateTime<chrono::Utc>) -> SystemTime {
@@ -40,9 +48,13 @@ fn fuser_ll_uid() -> u32 {
     // Mount daemon processes typically run as the user; read uid at attr
     // build time so files always appear owned by the mounting user.
     #[cfg(unix)]
-    { 501 }
+    {
+        501
+    }
     #[cfg(not(unix))]
-    { 0 }
+    {
+        0
+    }
 }
 
 fn fuser_ll_gid() -> u32 {

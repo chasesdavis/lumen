@@ -47,8 +47,8 @@ impl ObjectStore for LocalObjectStore {
     }
 
     async fn get(&self, key: &str) -> Result<bytes::Bytes> {
-        let bytes = std::fs::read(self.key_path(key))
-            .map_err(|_| LumenError::NotFound(key.to_string()))?;
+        let bytes =
+            std::fs::read(self.key_path(key)).map_err(|_| LumenError::NotFound(key.to_string()))?;
         Ok(bytes.into())
     }
 
@@ -56,10 +56,13 @@ impl ObjectStore for LocalObjectStore {
         use std::io::SeekFrom;
         let mut f = std::fs::File::open(self.key_path(key))
             .map_err(|_| LumenError::NotFound(key.to_string()))?;
-        f.seek(SeekFrom::Start(offset)).map_err(|e| LumenError::Storage(e.to_string()))?;
+        f.seek(SeekFrom::Start(offset))
+            .map_err(|e| LumenError::Storage(e.to_string()))?;
         let take = len.min(4 * 1024 * 1024 * 1024) as usize;
         let mut buf = vec![0u8; take];
-        let read = f.read(&mut buf).map_err(|e| LumenError::Storage(e.to_string()))?;
+        let read = f
+            .read(&mut buf)
+            .map_err(|e| LumenError::Storage(e.to_string()))?;
         buf.truncate(read);
         Ok(buf.into())
     }
@@ -86,7 +89,9 @@ impl ObjectStore for LocalObjectStore {
             };
             for entry in dir_iter {
                 let entry = entry.map_err(|e| LumenError::Storage(e.to_string()))?;
-                let meta = entry.metadata().map_err(|e| LumenError::Storage(e.to_string()))?;
+                let meta = entry
+                    .metadata()
+                    .map_err(|e| LumenError::Storage(e.to_string()))?;
                 if meta.is_dir() {
                     stack.push(entry.path());
                     continue;
@@ -96,14 +101,18 @@ impl ObjectStore for LocalObjectStore {
                 }
                 let entry_path = entry.path();
                 let rel = entry_path
-                .strip_prefix(&self.root)
-                .map_err(|e| LumenError::Storage(e.to_string()))?;
+                    .strip_prefix(&self.root)
+                    .map_err(|e| LumenError::Storage(e.to_string()))?;
                 let key = rel
-                .components()
-                .filter_map(|c| c.as_os_str().to_str())
-                .collect::<Vec<_>>()
-                .join("/");
-                out.push(ListEntry { key, size: meta.len(), etag: None });
+                    .components()
+                    .filter_map(|c| c.as_os_str().to_str())
+                    .collect::<Vec<_>>()
+                    .join("/");
+                out.push(ListEntry {
+                    key,
+                    size: meta.len(),
+                    etag: None,
+                });
             }
         }
         out.sort_by(|a, b| a.key.cmp(&b.key));

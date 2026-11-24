@@ -4,10 +4,10 @@
 //! typed tools and gets JSON back.
 
 use lumen_core::error::{LumenError, Result};
-use lumen_core::upload::CommitBatcher;
 use lumen_core::index::MetadataIndex;
 use lumen_core::metadata::ChunkRef;
 use lumen_core::metadata::{ItemType, RemoteItem};
+use lumen_core::upload::CommitBatcher;
 use serde_json::{json, Value};
 
 pub struct Tools {
@@ -27,7 +27,12 @@ pub struct Tools {
 
 impl Tools {
     pub fn with_index(index: MetadataIndex) -> Self {
-        Self { index, vfs: None, commits: None, gc_ctx: None }
+        Self {
+            index,
+            vfs: None,
+            commits: None,
+            gc_ctx: None,
+        }
     }
 
     /// Storage-backed mode: enables read_file with real chunk fetch +
@@ -35,7 +40,12 @@ impl Tools {
     /// filesystem adapters, so MCP reads warm the same ChunkCache).
     pub fn with_vfs(index: MetadataIndex, vfs: lumen_fsprobe::vfs::VfsOps) -> Self {
         let ctx = crate::GcContext::from_vfs(&vfs);
-        Self { index, vfs: Some(vfs), commits: None, gc_ctx: Some(ctx) }
+        Self {
+            index,
+            vfs: Some(vfs),
+            commits: None,
+            gc_ctx: Some(ctx),
+        }
     }
 
     /// Storage + changelog-backed mode: enables every tool including the
@@ -48,7 +58,12 @@ impl Tools {
         log: std::sync::Arc<lumen_core::ChangeLog>,
     ) -> Self {
         let ctx = crate::GcContext::from_vfs(&vfs);
-        Self { index, vfs: Some(vfs), commits: Some(CommitBatcher::new(log)), gc_ctx: Some(ctx) }
+        Self {
+            index,
+            vfs: Some(vfs),
+            commits: Some(CommitBatcher::new(log)),
+            gc_ctx: Some(ctx),
+        }
     }
 
     /// Test constructor pinning a GC meter for assertions.
@@ -70,9 +85,9 @@ impl Tools {
     /// cache so a later read_file of the same range costs nothing.
     fn index_content(&self, args: Value) -> Result<Value> {
         const INDEX_PAGE_BYTES: u64 = 1024 * 1024;
-        let id_str = args.get("id")
-            .and_then(|v| v.as_str())
-            .ok_or_else(|| LumenError::NotFound("index_content requires an 'id' argument".into()))?;
+        let id_str = args.get("id").and_then(|v| v.as_str()).ok_or_else(|| {
+            LumenError::NotFound("index_content requires an 'id' argument".into())
+        })?;
         let uuid = uuid::Uuid::parse_str(id_str)
             .map_err(|e| LumenError::NotFound(format!("invalid id {id_str}: {e}")))?;
         let item = self.index.get_item(&uuid)?;
@@ -108,7 +123,10 @@ impl Tools {
     pub fn dispatch(&self, name: &str, args: Value) -> Result<Value> {
         match name {
             "list_files" => {
-                let parent: Option<String> = args.get("parent_id").and_then(|v| v.as_str()).map(str::to_string);
+                let parent: Option<String> = args
+                    .get("parent_id")
+                    .and_then(|v| v.as_str())
+                    .map(str::to_string);
                 let pid = parent.and_then(|p| uuid::Uuid::parse_str(&p).ok());
                 let items = self.index.children(pid.as_ref())?;
                 Ok(json!({"files": items.iter().map(item_summary).collect::<Vec<_>>()}))
@@ -147,12 +165,10 @@ impl Tools {
                 // that are already uploaded and must not be swept as orphans.
                 let pending = if let Some(commits) = &self.commits {
                     commits.flush()?
-                } else { 0 };
-                let report = crate::gc_run_blocking(
-                    &self.index,
-                    &ctx.store,
-                    &ctx.meter,
-                )?;
+                } else {
+                    0
+                };
+                let report = crate::gc_run_blocking(&self.index, &ctx.store, &ctx.meter)?;
                 Ok(json!({
                     "scanned_keys": report.scanned_keys,
                     "reclaimed_keys": report.reclaimed_keys,
@@ -181,9 +197,11 @@ impl Tools {
                     .map_err(|e| LumenError::NotFound(format!("invalid id {id_str}: {e}")))?;
                 self.index.get_item(&uuid)?
             }
-            None => return Err(LumenError::NotFound(
-                "read_file requires an 'id' argument".to_string(),
-            )),
+            None => {
+                return Err(LumenError::NotFound(
+                    "read_file requires an 'id' argument".to_string(),
+                ))
+            }
         };
 
         if matches!(item.item_type, ItemType::Folder) {
@@ -226,8 +244,9 @@ impl Tools {
     fn file_metadata(&self, args: Value) -> Result<Value> {
         let id = args.get("id").and_then(|v| v.as_str()).map(str::to_string);
         if let Some(id_str) = id {
-            let uuid = uuid::Uuid::parse_str(&id_str)
-                .map_err(|e| lumen_core::error::LumenError::NotFound(format!("invalid id {id_str}: {e}")))?;
+            let uuid = uuid::Uuid::parse_str(&id_str).map_err(|e| {
+                lumen_core::error::LumenError::NotFound(format!("invalid id {id_str}: {e}"))
+            })?;
             let item = self.index.get_item(&uuid)?;
             return Ok(json!({ "item": item_detail(&item) }));
         }
@@ -278,9 +297,15 @@ impl Tools {
                 "create_file requires a storage-backed server".into(),
             ));
         };
-        let name = args.get("name").and_then(|v| v.as_str()).unwrap_or("").to_string();
+        let name = args
+            .get("name")
+            .and_then(|v| v.as_str())
+            .unwrap_or("")
+            .to_string();
         if name.is_empty() || name.contains('/') {
-            return Err(LumenError::NotFound("create_file requires a 'name' without path separators".into()));
+            return Err(LumenError::NotFound(
+                "create_file requires a 'name' without path separators".into(),
+            ));
         }
         let parent = match args.get("parent_id").and_then(|v| v.as_str()) {
             Some(p) => {
@@ -294,7 +319,9 @@ impl Tools {
         // synthesized item with no chunks - agents fetch it via file_metadata
         // on ""-path or track it from a prior list_files call.
         if !matches!(parent.item_type, ItemType::Folder) {
-            return Err(LumenError::Conflict("parent_id must reference a folder".into()));
+            return Err(LumenError::Conflict(
+                "parent_id must reference a folder".into(),
+            ));
         }
         if !parent.chunks.is_empty() {
             // A folder carries chunk refs only in synthesized-root form.
@@ -335,7 +362,9 @@ impl Tools {
             modified_at: now,
         };
         self.index.upsert(&item)?;
-        if let Some(batcher) = &self.commits { batcher.push(item.clone())?; }
+        if let Some(batcher) = &self.commits {
+            batcher.push(item.clone())?;
+        }
         Ok(json!({"item": item_detail(&item), "committed": false}))
     }
 
@@ -349,14 +378,17 @@ impl Tools {
                 "replace_file requires a storage-backed server".into(),
             ));
         };
-        let id_str = args.get("id")
+        let id_str = args
+            .get("id")
             .and_then(|v| v.as_str())
             .ok_or_else(|| LumenError::NotFound("replace_file requires an 'id' argument".into()))?;
         let uuid = uuid::Uuid::parse_str(id_str)
             .map_err(|e| LumenError::NotFound(format!("invalid id {id_str}: {e}")))?;
         let existing = self.index.get_item(&uuid)?;
         if matches!(existing.item_type, ItemType::Folder) {
-            return Err(LumenError::Conflict("cannot replace a folder with file contents".into()));
+            return Err(LumenError::Conflict(
+                "cannot replace a folder with file contents".into(),
+            ));
         }
         let content = args.get("content").and_then(|v| v.as_str()).unwrap_or("");
         const MAX_WRITE_BYTES: usize = 1024 * 1024;
@@ -380,7 +412,9 @@ impl Tools {
             modified_at: chrono::Utc::now(),
         };
         self.index.upsert(&updated)?;
-        if let Some(batcher) = &self.commits { batcher.push(updated.clone())?; }
+        if let Some(batcher) = &self.commits {
+            batcher.push(updated.clone())?;
+        }
         Ok(json!({"item": item_detail(&updated), "committed": false}))
     }
 
@@ -388,7 +422,8 @@ impl Tools {
     /// underlying encrypted chunks stay in storage until garbage collection;
     /// delete here is metadata-scoped exactly like Helumi trash semantics.
     fn delete_file(&self, args: Value) -> Result<Value> {
-        let id_str = args.get("id")
+        let id_str = args
+            .get("id")
             .and_then(|v| v.as_str())
             .ok_or_else(|| LumenError::NotFound("delete_file requires an 'id' argument".into()))?;
         let uuid = uuid::Uuid::parse_str(id_str)
@@ -417,8 +452,9 @@ fn vfs_read_blocking(
     match tokio::runtime::Handle::try_current() {
         // Inside an ambient multi-thread runtime: block_in_place lets the
         // current worker hop to the blocking pool while we await storage.
-        Ok(_) if tokio::runtime::Handle::current().runtime_flavor()
-            == tokio::runtime::RuntimeFlavor::MultiThread =>
+        Ok(_)
+            if tokio::runtime::Handle::current().runtime_flavor()
+                == tokio::runtime::RuntimeFlavor::MultiThread =>
         {
             tokio::task::block_in_place(|| {
                 tokio::runtime::Handle::current().block_on(vfs.read(item, off, len))
@@ -450,12 +486,12 @@ fn vfs_write_blocking(
         Ok::<_, LumenError>(chunks)
     };
     match tokio::runtime::Handle::try_current() {
-        Ok(_) if tokio::runtime::Handle::current().runtime_flavor()
-            == tokio::runtime::RuntimeFlavor::MultiThread =>
+        Ok(_)
+            if tokio::runtime::Handle::current().runtime_flavor()
+                == tokio::runtime::RuntimeFlavor::MultiThread =>
         {
-            let chunks = tokio::task::block_in_place(|| {
-                tokio::runtime::Handle::current().block_on(write)
-            })?;
+            let chunks =
+                tokio::task::block_in_place(|| tokio::runtime::Handle::current().block_on(write))?;
             to_refs(chunks)
         }
         Ok(_) => futures::executor::block_on(write).map(|c| to_refs(c))?,
@@ -479,7 +515,12 @@ fn to_refs(chunks: Vec<lumen_core::chunking::Chunk>) -> Result<(Vec<ChunkRef>, u
         .into_iter()
         .map(|c| {
             size += c.len;
-            ChunkRef { key: c.storage_key(), offset: c.offset, len: c.len, fingerprint: c.fingerprint }
+            ChunkRef {
+                key: c.storage_key(),
+                offset: c.offset,
+                len: c.len,
+                fingerprint: c.fingerprint,
+            }
         })
         .collect();
     Ok((refs, size))

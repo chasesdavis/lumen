@@ -62,8 +62,10 @@ impl UsageMeter {
     }
 
     pub fn report(&self, event: UsageEvent) {
-        self.total_stored.fetch_add(event.stored_bytes, Ordering::Relaxed);
-        self.total_retrieved.fetch_add(event.retrieved_bytes, Ordering::Relaxed);
+        self.total_stored
+            .fetch_add(event.stored_bytes, Ordering::Relaxed);
+        self.total_retrieved
+            .fetch_add(event.retrieved_bytes, Ordering::Relaxed);
         if let Some(sink) = &self.sink {
             sink(event);
         }
@@ -92,20 +94,38 @@ mod tests {
         let sink_seen = Arc::clone(&seen_ref);
         let sink: UsageSink = Arc::new(move |e| sink_seen.lock().unwrap().push(e));
         let meter = UsageMeter::new(sink);
-        meter.report(UsageEvent { stored_bytes: 10, retrieved_bytes: 0 });
-        meter.report(UsageEvent { stored_bytes: 0, retrieved_bytes: 25 });
+        meter.report(UsageEvent {
+            stored_bytes: 10,
+            retrieved_bytes: 0,
+        });
+        meter.report(UsageEvent {
+            stored_bytes: 0,
+            retrieved_bytes: 25,
+        });
         assert_eq!(meter.stored(), 10);
         assert_eq!(meter.retrieved(), 25);
-        assert_eq!(*seen_ref.lock().unwrap(), vec![
-            UsageEvent { stored_bytes: 10, retrieved_bytes: 0 },
-            UsageEvent { stored_bytes: 0, retrieved_bytes: 25 },
-        ]);
+        assert_eq!(
+            *seen_ref.lock().unwrap(),
+            vec![
+                UsageEvent {
+                    stored_bytes: 10,
+                    retrieved_bytes: 0
+                },
+                UsageEvent {
+                    stored_bytes: 0,
+                    retrieved_bytes: 25
+                },
+            ]
+        );
     }
 
     #[test]
     fn disabled_meter_silently_counts() {
         let m = UsageMeter::disabled();
-        m.report(UsageEvent { stored_bytes: 1, retrieved_bytes: 2 });
+        m.report(UsageEvent {
+            stored_bytes: 1,
+            retrieved_bytes: 2,
+        });
         assert_eq!(m.stored(), 1);
         assert_eq!(m.retrieved(), 2);
     }
@@ -118,7 +138,10 @@ mod tests {
         let sink: UsageSink = Arc::new(move |e| sink_seen.lock().unwrap().push(e));
         let m = UsageMeter::new(sink);
         let n = m.clone();
-        n.report(UsageEvent { stored_bytes: 5, retrieved_bytes: 0 });
+        n.report(UsageEvent {
+            stored_bytes: 5,
+            retrieved_bytes: 0,
+        });
         assert_eq!(m.stored(), 0); // clone kept old totals
         assert_eq!(n.stored(), 5);
         assert_eq!(seen_ref.lock().unwrap().len(), 1); // shared sink

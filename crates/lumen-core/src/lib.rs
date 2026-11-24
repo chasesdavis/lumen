@@ -11,8 +11,8 @@ pub mod crypto;
 pub mod error;
 pub mod gc;
 pub mod index;
-pub mod meter;
 pub mod metadata;
+pub mod meter;
 pub mod prefetch;
 pub mod store;
 pub mod sync;
@@ -20,7 +20,7 @@ pub mod upload;
 
 pub use cache::ChunkCache;
 pub use changelog::ChangeLog;
-pub use chunking::{FastCdc, Chunk};
+pub use chunking::{Chunk, FastCdc};
 pub use crypto::ChunkCrypto;
 pub use error::{LumenError, Result};
 pub use gc::{gc_and_report, gc_collect, GcReport};

@@ -35,7 +35,12 @@ pub struct SyncEngine<F: ChangeFeed> {
 
 impl<F: ChangeFeed> SyncEngine<F> {
     pub fn new(feed: F) -> Self {
-        Self { feed, tree: Mutex::new(DriveTree::new()), cursor: Mutex::new(0), index: None }
+        Self {
+            feed,
+            tree: Mutex::new(DriveTree::new()),
+            cursor: Mutex::new(0),
+            index: None,
+        }
     }
 
     /// Attach a MetadataIndex so every applied delta updates both the
@@ -76,12 +81,16 @@ impl<F: ChangeFeed> SyncEngine<F> {
                 applied += 1;
             }
             *self.cursor.lock().await = page.cursor;
-            if !page.more { break; }
+            if !page.more {
+                break;
+            }
         }
         Ok(applied)
     }
 
-    pub async fn cursor(&self) -> i64 { *self.cursor.lock().await }
+    pub async fn cursor(&self) -> i64 {
+        *self.cursor.lock().await
+    }
 }
 
 #[cfg(test)]
@@ -89,15 +98,25 @@ mod tests {
     use super::*;
     use crate::metadata::{ItemType, RemoteItem};
 
-    struct FakeFeed { data: Vec<(i64, RemoteItem)> }
+    struct FakeFeed {
+        data: Vec<(i64, RemoteItem)>,
+    }
 
     #[async_trait::async_trait]
     impl ChangeFeed for FakeFeed {
         async fn changes_since(&self, cursor: i64, _limit: usize) -> Result<ChangePage> {
-            let ups: Vec<RemoteItem> = self.data.iter()
+            let ups: Vec<RemoteItem> = self
+                .data
+                .iter()
                 .filter(|(seq, _)| *seq > cursor)
-                .map(|(_, it)| it.clone()).collect();
-            Ok(ChangePage { cursor: self.data.last().map(|(s, _)| *s).unwrap_or(cursor), more: false, upserts: ups, removals: vec![] })
+                .map(|(_, it)| it.clone())
+                .collect();
+            Ok(ChangePage {
+                cursor: self.data.last().map(|(s, _)| *s).unwrap_or(cursor),
+                more: false,
+                upserts: ups,
+                removals: vec![],
+            })
         }
     }
 
@@ -105,11 +124,20 @@ mod tests {
     async fn applies_changes_from_zero() {
         let id = uuid::Uuid::new_v4();
         let item = RemoteItem {
-            id, parent_id: None, name: "a.txt".into(), item_type: ItemType::File,
-            size: 3, content_version: 1, metadata_version: 1, chunks: vec![],
-            created_at: chrono::Utc::now(), modified_at: chrono::Utc::now(),
+            id,
+            parent_id: None,
+            name: "a.txt".into(),
+            item_type: ItemType::File,
+            size: 3,
+            content_version: 1,
+            metadata_version: 1,
+            chunks: vec![],
+            created_at: chrono::Utc::now(),
+            modified_at: chrono::Utc::now(),
         };
-        let f = FakeFeed { data: vec![(5, item)] };
+        let f = FakeFeed {
+            data: vec![(5, item)],
+        };
         let se = SyncEngine::new(f);
         assert_eq!(se.pull_all(100).await.unwrap(), 1);
         assert_eq!(se.cursor().await, 5);
@@ -139,13 +167,21 @@ mod tests {
                         created_at: chrono::Utc::now(),
                         modified_at: chrono::Utc::now(),
                     };
-                    Ok(ChangePage { cursor: 1, more: true, upserts: vec![item], removals: vec![] })
+                    Ok(ChangePage {
+                        cursor: 1,
+                        more: true,
+                        upserts: vec![item],
+                        removals: vec![],
+                    })
                 } else {
                     Ok(ChangePage {
                         cursor: 2,
                         more: false,
                         upserts: vec![],
-                        removals: vec![uuid::Uuid::parse_str("00000000-0000-4000-8000-000000000001").unwrap()],
+                        removals: vec![uuid::Uuid::parse_str(
+                            "00000000-0000-4000-8000-000000000001",
+                        )
+                        .unwrap()],
                     })
                 }
             }
@@ -160,7 +196,11 @@ mod tests {
         // After the full two-page cycle the item was upserted then removed:
         // the index reflects the removal (NotFound), proving deltas flow
         // through to the SQLite side, not just the DriveTree.
-        let missing = index.get_item(&uuid::Uuid::parse_str("00000000-0000-4000-8000-000000000001").unwrap());
-        assert!(matches!(missing, Err(crate::error::LumenError::NotFound(_))));
+        let missing =
+            index.get_item(&uuid::Uuid::parse_str("00000000-0000-4000-8000-000000000001").unwrap());
+        assert!(matches!(
+            missing,
+            Err(crate::error::LumenError::NotFound(_))
+        ));
     }
 }

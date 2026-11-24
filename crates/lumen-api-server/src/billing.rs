@@ -67,9 +67,18 @@ pub fn simulate_cost_curve() -> Vec<(f64, Vec<(Provider, u64)>)> {
             (
                 gb,
                 vec![
-                    (Provider::CloudflareR2, monthly_price_cents(Provider::CloudflareR2, gb).unwrap()),
-                    (Provider::BackblazeB2, monthly_price_cents(Provider::BackblazeB2, gb).unwrap()),
-                    (Provider::Storj, monthly_price_cents(Provider::Storj, gb).unwrap()),
+                    (
+                        Provider::CloudflareR2,
+                        monthly_price_cents(Provider::CloudflareR2, gb).unwrap(),
+                    ),
+                    (
+                        Provider::BackblazeB2,
+                        monthly_price_cents(Provider::BackblazeB2, gb).unwrap(),
+                    ),
+                    (
+                        Provider::Storj,
+                        monthly_price_cents(Provider::Storj, gb).unwrap(),
+                    ),
                 ],
             )
         })
@@ -78,7 +87,11 @@ pub fn simulate_cost_curve() -> Vec<(f64, Vec<(Provider, u64)>)> {
 
 #[cfg(test)]
 fn providers_all() -> [Provider; 3] {
-    [Provider::CloudflareR2, Provider::BackblazeB2, Provider::Storj]
+    [
+        Provider::CloudflareR2,
+        Provider::BackblazeB2,
+        Provider::Storj,
+    ]
 }
 
 #[cfg(test)]
@@ -110,9 +123,15 @@ mod tests {
         // BYOB mode ($3 flat, their own provider credentials, zero storage
         // markup) instead of managed pass-through pricing.
         let r2 = monthly_price_cents(Provider::CloudflareR2, 1024.0).unwrap();
-        assert!(r2 > HELUMI_MONTHLY_CENTS, "R2 at 1TB unexpectedly below flat rate");
+        assert!(
+            r2 > HELUMI_MONTHLY_CENTS,
+            "R2 at 1TB unexpectedly below flat rate"
+        );
         let b2 = monthly_price_cents(Provider::BackblazeB2, 1024.0).unwrap();
-        assert!(b2 > HELUMI_MONTHLY_CENTS, "B2 at 1TB unexpectedly below flat rate");
+        assert!(
+            b2 > HELUMI_MONTHLY_CENTS,
+            "B2 at 1TB unexpectedly below flat rate"
+        );
     }
 
     #[test]

@@ -33,16 +33,21 @@ pub struct Prefetcher {
 }
 
 impl Prefetcher {
-    pub fn new() -> Self { Self { signals: Mutex::new(HashMap::new()) } }
+    pub fn new() -> Self {
+        Self {
+            signals: Mutex::new(HashMap::new()),
+        }
+    }
 
     /// Record that `chunk_index` of `file_id` was just read and return the
     /// updated access score for that file. Higher = prefetch sooner.
     pub fn observe_read(&self, file_id: uuid::Uuid, chunk_index: u64) -> f32 {
         let now = Instant::now();
         let mut map = self.signals.lock().expect("prefetcher poisoned");
-        let sig = map
-            .entry(file_id)
-            .or_insert_with(|| FileSignal { first_read_recent: true, ..FileSignal::default() });
+        let sig = map.entry(file_id).or_insert_with(|| FileSignal {
+            first_read_recent: true,
+            ..FileSignal::default()
+        });
         if let Some(prev) = sig.last_chunk_index {
             if prev + 1 == chunk_index || prev == chunk_index + 1 {
                 sig.sequential_hits += 1;
@@ -58,7 +63,10 @@ impl Prefetcher {
     pub fn ranked(&self) -> Vec<(uuid::Uuid, f32)> {
         let now = Instant::now();
         let map = self.signals.lock().expect("prefetcher poisoned");
-        let mut v: Vec<_> = map.iter().map(|(k, s)| (*k, compute_score(s, now))).collect();
+        let mut v: Vec<_> = map
+            .iter()
+            .map(|(k, s)| (*k, compute_score(s, now)))
+            .collect();
         v.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
         v
     }
@@ -89,7 +97,11 @@ fn compute_score(s: &FileSignal, now: Instant) -> f32 {
             let elapsed = now.duration_since(t);
             let halflives = elapsed.as_secs_f32() / HALF_LIFE.as_secs_f32();
             let decayed = base / (2f32).powf(halflives.max(0.0));
-            let boost = if s.first_read_recent && elapsed < HALF_LIFE * 4 { FIRST_READ_BOOST } else { 1.0 };
+            let boost = if s.first_read_recent && elapsed < HALF_LIFE * 4 {
+                FIRST_READ_BOOST
+            } else {
+                1.0
+            };
             decayed * boost
         }
     }
@@ -110,6 +122,4 @@ mod tests {
         assert!(ranking.iter().any(|(id, _)| *id == a));
         assert!(!ranking.iter().any(|(id, _)| *id == b) || ranking.last().unwrap().0 != a);
     }
-
 }
-

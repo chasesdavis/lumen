@@ -43,7 +43,10 @@ pub struct Claims {
 
 #[derive(Serialize, Deserialize, PartialEq, Clone, Copy)]
 #[serde(rename_all = "lowercase")]
-pub enum TokenScope { Access, Refresh }
+pub enum TokenScope {
+    Access,
+    Refresh,
+}
 
 pub struct KeyMaterial {
     enc: EncodingKey,
@@ -60,7 +63,10 @@ impl KeyMaterial {
 }
 
 fn now() -> i64 {
-    SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs() as i64
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_secs() as i64
 }
 
 impl Claims {
@@ -98,19 +104,26 @@ pub fn hash_password(password: &str) -> Result<String, AuthError> {
 pub fn verify_password(password: &str, hash: &str) -> Result<(), AuthError> {
     let parsed = PasswordHash::new(hash).map_err(AuthError::Verify)?;
     Argon2::default()
-        .verify_password(password.as_bytes(), &parsed).map_err(AuthError::Verify)
+        .verify_password(password.as_bytes(), &parsed)
+        .map_err(AuthError::Verify)
 }
 
 pub fn issue(claims: &Claims, keys: &KeyMaterial) -> Result<String, AuthError> {
     encode(&Header::default(), claims, &keys.enc).map_err(AuthError::Token)
 }
 
-pub fn verify(token: &str, expected_scope: TokenScope, keys: &KeyMaterial) -> Result<Claims, AuthError> {
+pub fn verify(
+    token: &str,
+    expected_scope: TokenScope,
+    keys: &KeyMaterial,
+) -> Result<Claims, AuthError> {
     let mut validation = Validation::default();
     validation.set_issuer(&[ISSUER]);
     let data = decode::<Claims>(token, &keys.dec, &validation).map_err(AuthError::Token)?;
     if data.claims.scope != expected_scope {
-        return Err(AuthError::Token(jsonwebtoken::errors::ErrorKind::InvalidToken.into()));
+        return Err(AuthError::Token(
+            jsonwebtoken::errors::ErrorKind::InvalidToken.into(),
+        ));
     }
     Ok(data.claims)
 }

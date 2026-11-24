@@ -27,7 +27,11 @@ impl AuthConfig {
     pub fn from_env() -> Self {
         let secret = std::env::var("LUMEN_JWT_SECRET").unwrap_or_default();
         Self {
-            keys: if secret.is_empty() { None } else { Some(Arc::new(KeyMaterial::from_secret(secret.as_bytes()))) },
+            keys: if secret.is_empty() {
+                None
+            } else {
+                Some(Arc::new(KeyMaterial::from_secret(secret.as_bytes())))
+            },
         }
     }
 
@@ -36,7 +40,9 @@ impl AuthConfig {
     }
 
     pub fn gated(keys: KeyMaterial) -> Self {
-        Self { keys: Some(Arc::new(keys)) }
+        Self {
+            keys: Some(Arc::new(keys)),
+        }
     }
 
     pub fn is_gated(&self) -> bool {
@@ -48,7 +54,9 @@ impl AuthConfig {
         match &self.keys {
             // Open mode refuses to claim an authorization happened: silent
             // pass would imply tokens were checked when they were not.
-            None => Err("auth not configured on this server; set LUMEN_JWT_SECRET to enable".into()),
+            None => {
+                Err("auth not configured on this server; set LUMEN_JWT_SECRET to enable".into())
+            }
             Some(keys) => {
                 auth::verify(token, TokenScope::Access, keys)
                     .map_err(|e| format!("invalid access token: {}", e))?;
@@ -93,9 +101,14 @@ mod tests {
     fn open_mode_allows_all_calls_but_refuses_authorize() {
         let cfg = AuthConfig::open_mode();
         let mut s = Session::default();
-        assert!(cfg.allows_calls(&s), "open mode must allow calls without auth");
-        assert!(cfg.authorize(&mut s, "anything").is_err(),
-            "open mode must not pretend a token was verified");
+        assert!(
+            cfg.allows_calls(&s),
+            "open mode must allow calls without auth"
+        );
+        assert!(
+            cfg.authorize(&mut s, "anything").is_err(),
+            "open mode must not pretend a token was verified"
+        );
     }
 
     #[test]
@@ -103,7 +116,10 @@ mod tests {
         let (keys, token) = keys_and_token("user@example.com");
         let cfg = AuthConfig::gated(keys);
         let mut s = Session::default();
-        assert!(!cfg.allows_calls(&s), "unauthenticated session must be blocked");
+        assert!(
+            !cfg.allows_calls(&s),
+            "unauthenticated session must be blocked"
+        );
         assert!(cfg.authorize(&mut s, &token).is_ok());
         assert!(s.is_authorized());
         assert!(cfg.allows_calls(&s), "authorized sessions stay allowed");
@@ -115,7 +131,10 @@ mod tests {
         let (_keys_b, tok_b) = keys_and_token("other@example.com");
         let cfg = AuthConfig::gated(keys_a);
         let mut s = Session::default();
-        assert!(cfg.authorize(&mut s, &tok_b).is_err(), "tokens from another key must fail");
+        assert!(
+            cfg.authorize(&mut s, &tok_b).is_err(),
+            "tokens from another key must fail"
+        );
         assert!(!s.is_authorized());
         assert!(cfg.authorize(&mut s, "not-a-jwt").is_err());
         assert!(cfg.authorize(&mut s, "").is_err());
@@ -127,8 +146,10 @@ mod tests {
         let refresh = auth::issue(&Claims::new_refresh("u", "e"), &keys).unwrap();
         let cfg = AuthConfig::gated(KeyMaterial::from_secret(b"scope-test-secret"));
         let mut s = Session::default();
-        assert!(cfg.authorize(&mut s, &refresh).is_err(),
-            "refresh scope tokens must not authorize MCP sessions - only access tokens can");
+        assert!(
+            cfg.authorize(&mut s, &refresh).is_err(),
+            "refresh scope tokens must not authorize MCP sessions - only access tokens can"
+        );
         assert!(!s.is_authorized());
         let access = auth::issue(&Claims::new_access("u", "e"), &keys).unwrap();
         assert!(cfg.authorize(&mut s, &access).is_ok());

@@ -49,12 +49,18 @@ impl ChunkCrypto {
     pub fn encrypt_chunk(&self, plaintext: &[u8], fingerprint: &[u8; 16]) -> Result<Vec<u8>> {
         use aes_gcm::aead::{Aead, Payload};
         let key = self.chunk_key(fingerprint);
-        let cipher = Aes256Gcm::new_from_slice(&key)
-            .map_err(|e| LumenError::Crypto(e.to_string()))?;
+        let cipher =
+            Aes256Gcm::new_from_slice(&key).map_err(|e| LumenError::Crypto(e.to_string()))?;
         let nonce_bytes: [u8; NONCE_LEN] = rand::random();
         let nonce = Nonce::from_slice(&nonce_bytes);
         let ct = cipher
-            .encrypt(nonce, Payload { msg: plaintext, aad: fingerprint })
+            .encrypt(
+                nonce,
+                Payload {
+                    msg: plaintext,
+                    aad: fingerprint,
+                },
+            )
             .map_err(|e| LumenError::Crypto(e.to_string()))?;
         let mut out = Vec::with_capacity(NONCE_LEN + ct.len());
         out.extend_from_slice(&nonce_bytes);
@@ -69,12 +75,18 @@ impl ChunkCrypto {
             return Err(LumenError::Integrity(hex::encode(fingerprint)));
         }
         let key = self.chunk_key(fingerprint);
-        let cipher = Aes256Gcm::new_from_slice(&key)
-            .map_err(|e| LumenError::Crypto(e.to_string()))?;
+        let cipher =
+            Aes256Gcm::new_from_slice(&key).map_err(|e| LumenError::Crypto(e.to_string()))?;
         let (nonce_bytes, ct) = blob.split_at(NONCE_LEN);
         let nonce = Nonce::from_slice(nonce_bytes);
         let plain = cipher
-            .decrypt(nonce, Payload { msg: ct, aad: fingerprint })
+            .decrypt(
+                nonce,
+                Payload {
+                    msg: ct,
+                    aad: fingerprint,
+                },
+            )
             .map_err(|_| LumenError::Integrity(hex::encode(fingerprint)))?;
         Ok(plain)
     }

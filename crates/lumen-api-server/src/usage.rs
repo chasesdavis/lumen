@@ -20,7 +20,12 @@ pub fn ledger_sink(
     user_id: String,
 ) -> lumen_core::meter::UsageSink {
     std::sync::Arc::new(move |e| {
-        let _ = ledger.record(&user_id, e.stored_bytes as i64, e.retrieved_bytes as i64, chrono::Utc::now());
+        let _ = ledger.record(
+            &user_id,
+            e.stored_bytes as i64,
+            e.retrieved_bytes as i64,
+            chrono::Utc::now(),
+        );
     })
 }
 
@@ -47,7 +52,9 @@ impl UsageLedger {
             CREATE INDEX IF NOT EXISTS idx_usage_user_period ON usage_events(user_id, period);",
         )
         .map_err(|e| LumenError::Storage(e.to_string()))?;
-        Ok(Self { conn: Mutex::new(conn) })
+        Ok(Self {
+            conn: Mutex::new(conn),
+        })
     }
 
     /// YYYY-MM billing period covering a timestamp.
@@ -57,7 +64,13 @@ impl UsageLedger {
 
     /// Record chunk activity for one user in the current period.
     /// Upsert keeps a single row per (user, period) so the table stays tiny.
-    pub fn record(&self, user_id: &str, stored_bytes: i64, retrieved_bytes: i64, when: chrono::DateTime<chrono::Utc>) -> Result<()> {
+    pub fn record(
+        &self,
+        user_id: &str,
+        stored_bytes: i64,
+        retrieved_bytes: i64,
+        when: chrono::DateTime<chrono::Utc>,
+    ) -> Result<()> {
         let period = Self::period_of(when);
         let conn = self.conn.lock().expect("usage ledger poisoned");
         conn.execute(
@@ -116,7 +129,14 @@ mod tests {
         ledger.record("a", 100, 10, chrono::Utc::now()).unwrap();
         ledger.record("b", 200, 20, chrono::Utc::now()).unwrap();
         // Pin an explicit prior period to prove it never leaks into "now".
-        ledger.record("a", 999, 999, chrono::DateTime::from_timestamp(1767225600, 0).unwrap()).unwrap();
+        ledger
+            .record(
+                "a",
+                999,
+                999,
+                chrono::DateTime::from_timestamp(1767225600, 0).unwrap(),
+            )
+            .unwrap();
         assert_eq!(ledger.current_period_usage("a").unwrap(), (100, 10));
         assert_eq!(ledger.current_period_usage("b").unwrap(), (200, 20));
         assert_eq!(ledger.period_usage("a", "2026-01").unwrap(), (999, 999));
@@ -134,8 +154,14 @@ mod tests {
         // Simulate exactly what VfsOps does: attach the ledger-backed sink
         // to a meter and report upload/download events.
         let meter = UsageMeter::new(ledger_sink(ledger.clone(), "user-9".into()));
-        meter.report(UsageEvent { stored_bytes: 1024, retrieved_bytes: 0 });
-        meter.report(UsageEvent { stored_bytes: 512, retrieved_bytes: 4096 });
+        meter.report(UsageEvent {
+            stored_bytes: 1024,
+            retrieved_bytes: 0,
+        });
+        meter.report(UsageEvent {
+            stored_bytes: 512,
+            retrieved_bytes: 4096,
+        });
 
         assert_eq!(ledger.current_period_usage("user-9").unwrap(), (1536, 4096));
         // Other users are never affected by another mount's traffic.

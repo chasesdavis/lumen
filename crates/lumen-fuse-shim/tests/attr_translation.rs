@@ -51,13 +51,30 @@ mod t {
 
     #[test]
     fn errno_bridge_covers_every_adapter_variant() {
-        assert_eq!(errno_from_adapter(AdapterError::NotFound), fuser::Errno::ENOENT);
-        assert_eq!(errno_from_adapter(AdapterError::NotADirectory), fuser::Errno::ENOTDIR);
-        assert_eq!(errno_from_adapter(AdapterError::IsADirectory), fuser::Errno::EISDIR);
-        assert_eq!(errno_from_adapter(AdapterError::AlreadyExists), fuser::Errno::EEXIST);
-        assert_eq!(errno_from_adapter(AdapterError::InvalidPath), fuser::Errno::EINVAL);
         assert_eq!(
-            errno_from_adapter(AdapterError::Core(lumen_core::LumenError::Storage("x".into()))),
+            errno_from_adapter(AdapterError::NotFound),
+            fuser::Errno::ENOENT
+        );
+        assert_eq!(
+            errno_from_adapter(AdapterError::NotADirectory),
+            fuser::Errno::ENOTDIR
+        );
+        assert_eq!(
+            errno_from_adapter(AdapterError::IsADirectory),
+            fuser::Errno::EISDIR
+        );
+        assert_eq!(
+            errno_from_adapter(AdapterError::AlreadyExists),
+            fuser::Errno::EEXIST
+        );
+        assert_eq!(
+            errno_from_adapter(AdapterError::InvalidPath),
+            fuser::Errno::EINVAL
+        );
+        assert_eq!(
+            errno_from_adapter(AdapterError::Core(lumen_core::LumenError::Storage(
+                "x".into()
+            ))),
             fuser::Errno::EIO,
         );
     }

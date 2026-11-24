@@ -64,7 +64,11 @@ impl WebhookHeaders {
             .map_err(|_| WebhookError::MalformedHeaders("bad webhook-timestamp".into()))?;
         let signature_b64 = get("webhook-signature")
             .ok_or_else(|| WebhookError::MalformedHeaders("missing webhook-signature".into()))?;
-        Ok(Self { id, timestamp, signature_b64 })
+        Ok(Self {
+            id,
+            timestamp,
+            signature_b64,
+        })
     }
 }
 
@@ -92,7 +96,9 @@ pub fn verify_webhook(
     // candidate matching is valid (supports key rotation). Candidates use
     // the "v1," prefix (scheme version tag + comma), not "=".
     for candidate in headers.signature_b64.split(' ') {
-        let Some(raw) = candidate.strip_prefix("v1,") else { continue };
+        let Some(raw) = candidate.strip_prefix("v1,") else {
+            continue;
+        };
         match B64.decode(raw.trim()) {
             Ok(bytes) => {
                 if mac.clone().verify_slice(&bytes).is_ok() {
@@ -149,14 +155,28 @@ mod tests {
         // Correct signature, in-tolerance timestamp -> Ok
         assert!(verify_webhook(
             key,
-            &WebhookHeaders { id: id.into(), timestamp: ts, signature_b64: good_sig.clone() },
+            &WebhookHeaders {
+                id: id.into(),
+                timestamp: ts,
+                signature_b64: good_sig.clone()
+            },
             body,
             ts + 60,
-        ).is_ok());
+        )
+        .is_ok());
 
         // Wrong signing key -> SignatureMismatch (fail closed)
         assert!(matches!(
-            verify_webhook("wrong-key", &WebhookHeaders { id: id.into(), timestamp: ts, signature_b64: good_sig }, body, ts + 60),
+            verify_webhook(
+                "wrong-key",
+                &WebhookHeaders {
+                    id: id.into(),
+                    timestamp: ts,
+                    signature_b64: good_sig
+                },
+                body,
+                ts + 60
+            ),
             Err(WebhookError::SignatureMismatch)
         ));
 
@@ -165,7 +185,11 @@ mod tests {
         assert!(matches!(
             verify_webhook(
                 key,
-                &WebhookHeaders { id: id.into(), timestamp: ts, signature_b64: sig2 },
+                &WebhookHeaders {
+                    id: id.into(),
+                    timestamp: ts,
+                    signature_b64: sig2
+                },
                 body,
                 ts + WEBHOOK_TOLERANCE_SECS + 1,
             ),
@@ -182,7 +206,11 @@ mod tests {
             id: "msg_rotate".into(),
             timestamp: 1700000000,
             // Old key candidate first, new key second: either validates.
-            signature_b64: format!("{} {}", sign(key_old, "msg_rotate", 1700000000, body), sign(key_new, "msg_rotate", 1700000000, body)),
+            signature_b64: format!(
+                "{} {}",
+                sign(key_old, "msg_rotate", 1700000000, body),
+                sign(key_new, "msg_rotate", 1700000000, body)
+            ),
         };
         assert!(verify_webhook(key_new, &headers, body, 1700000060).is_ok());
         assert!(verify_webhook(key_old, &headers, body, 1700000060).is_ok());
@@ -198,12 +226,25 @@ mod tests {
         // Valid signature over different content -> mismatch.
         let sig = sign(key, id, ts, br#"{"type":"payment.failed"}"#);
         assert!(matches!(
-            verify_webhook(key, &WebhookHeaders { id: id.into(), timestamp: ts, signature_b64: sig }, body, ts),
+            verify_webhook(
+                key,
+                &WebhookHeaders {
+                    id: id.into(),
+                    timestamp: ts,
+                    signature_b64: sig
+                },
+                body,
+                ts
+            ),
             Err(WebhookError::SignatureMismatch)
         ));
 
         // Non-Base64 garbage -> malformed signature surfaces as error.
-        let bad_b64 = WebhookHeaders { id: id.into(), timestamp: ts, signature_b64: "v1,!!!notbase64!!!".into() };
+        let bad_b64 = WebhookHeaders {
+            id: id.into(),
+            timestamp: ts,
+            signature_b64: "v1,!!!notbase64!!!".into(),
+        };
         assert!(verify_webhook(key, &bad_b64, body, ts).is_err());
     }
 

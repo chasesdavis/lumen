@@ -6,6 +6,7 @@ members = [
     "crates/lumen-fsprobe",
     "crates/lumen-fs-adapter",
     "crates/lumen-fuse-shim",
+    "crates/lumen-winfsp-shim",
     "crates/lumen-mcp-server",
     "crates/lumen-api-server",
 ]

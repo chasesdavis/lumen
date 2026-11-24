@@ -94,7 +94,9 @@ impl CommitBatcher {
         let count;
         let batch = {
             let mut inner = self.lock()?;
-            if inner.pending.is_empty() { return Ok(0); }
+            if inner.pending.is_empty() {
+                return Ok(0);
+            }
             count = inner.pending.len();
             inner.take_pending()
         };
@@ -129,7 +131,9 @@ impl CommitBatcher {
     }
 
     fn lock(&self) -> Result<std::sync::MutexGuard<'_, Inner>> {
-        self.inner.lock().map_err(|_| LumenError::Storage("commit batcher mutex poisoned".into()))
+        self.inner
+            .lock()
+            .map_err(|_| LumenError::Storage("commit batcher mutex poisoned".into()))
     }
 }
 
@@ -188,7 +192,11 @@ mod tests {
         for name in ["a", "b", "c"] {
             batcher.push(item(name)).unwrap();
         }
-        assert_eq!(log.latest_seq(), 3, "third push crossed threshold and flushed");
+        assert_eq!(
+            log.latest_seq(),
+            3,
+            "third push crossed threshold and flushed"
+        );
         assert!(batcher.is_empty().unwrap());
         batcher.push(item("d")).unwrap();
         assert_eq!(log.latest_seq(), 3, "d waits below threshold");
@@ -215,13 +223,25 @@ mod tests {
     fn max_queue_depth_reports_real_batch_sizes_across_flushes() {
         let log = std::sync::Arc::new(ChangeLog::default());
         let batcher = CommitBatcher::new_with_threshold(log, 10);
-        for name in ["a", "b"] { batcher.push(item(name)).unwrap(); }
-        assert_eq!(batcher.max_queue_depth().unwrap(), 0, "nothing committed yet");
+        for name in ["a", "b"] {
+            batcher.push(item(name)).unwrap();
+        }
+        assert_eq!(
+            batcher.max_queue_depth().unwrap(),
+            0,
+            "nothing committed yet"
+        );
         batcher.flush().unwrap();
         assert_eq!(batcher.max_queue_depth().unwrap(), 2);
-        for name in ["c", "d", "e"] { batcher.push(item(name)).unwrap(); }
+        for name in ["c", "d", "e"] {
+            batcher.push(item(name)).unwrap();
+        }
         batcher.flush().unwrap();
-        assert_eq!(batcher.max_queue_depth().unwrap(), 3, "high-water mark grows");
+        assert_eq!(
+            batcher.max_queue_depth().unwrap(),
+            3,
+            "high-water mark grows"
+        );
         // A smaller later flush must never shrink it.
         batcher.push(item("f")).unwrap();
         batcher.flush().unwrap();
@@ -233,7 +253,11 @@ mod tests {
         let log = std::sync::Arc::new(ChangeLog::default());
         let batcher = CommitBatcher::new_with_threshold(log.clone(), 0);
         batcher.push(item("a")).unwrap();
-        assert_eq!(log.latest_seq(), 1, "threshold clamps to 1: every push flushes");
+        assert_eq!(
+            log.latest_seq(),
+            1,
+            "threshold clamps to 1: every push flushes"
+        );
         assert!(batcher.is_empty().unwrap());
     }
 
@@ -253,7 +277,9 @@ mod tests {
                 }
             }));
         }
-        for h in handles { h.await.unwrap(); }
+        for h in handles {
+            h.await.unwrap();
+        }
         batcher.flush().unwrap();
 
         // Every push either triggered a threshold flush or waited for the
@@ -263,11 +289,13 @@ mod tests {
         let total_upserts: usize = page.upserts.len() + page.removals.len();
         assert_eq!(total_upserts, 128);
         // Names are unique - nothing lost or duplicated across threads.
-        let mut names: Vec<String> =
-            page.upserts.iter().map(|i| i.name.clone()).collect();
+        let mut names: Vec<String> = page.upserts.iter().map(|i| i.name.clone()).collect();
         names.sort();
         names.dedup();
-        assert_eq!(names.len(), 128, "each pushed item must appear exactly once");
+        assert_eq!(
+            names.len(),
+            128,
+            "each pushed item must appear exactly once"
+        );
     }
 }
-

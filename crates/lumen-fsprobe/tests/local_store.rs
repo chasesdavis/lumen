@@ -2,9 +2,9 @@
 //! real temp directory. GC and lumen-mount's file:// mode rely on this store
 //! behaving identically to S3-backed ones.
 
+use bytes::Bytes;
 use lumen_core::store::ObjectStore;
 use lumen_fsprobe::local::LocalObjectStore;
-use bytes::Bytes;
 
 #[tokio::test]
 async fn put_get_range_delete_roundtrip() {
@@ -12,13 +12,19 @@ async fn put_get_range_delete_roundtrip() {
     let store = LocalObjectStore::open(dir.path()).unwrap();
 
     let body = Bytes::from(vec![42u8; 10_000]);
-    store.put("chunks/aa/bb/cc/dd/key1", body.clone()).await.unwrap();
+    store
+        .put("chunks/aa/bb/cc/dd/key1", body.clone())
+        .await
+        .unwrap();
 
     assert_eq!(store.head("chunks/aa/bb/cc/dd/key1").await.unwrap(), 10_000);
     assert_eq!(store.get("chunks/aa/bb/cc/dd/key1").await.unwrap(), body);
 
     // Range read mid-object returns exactly the requested slice.
-    let slice = store.get_range("chunks/aa/bb/cc/dd/key1", 100, 50).await.unwrap();
+    let slice = store
+        .get_range("chunks/aa/bb/cc/dd/key1", 100, 50)
+        .await
+        .unwrap();
     assert_eq!(slice.len(), 50);
     assert_eq!(&slice[..], &body[100..150]);
 
@@ -38,9 +44,18 @@ async fn list_scopes_to_prefix_and_skips_partials() {
     let dir = tempfile::tempdir().unwrap();
     let store = LocalObjectStore::open(dir.path()).unwrap();
 
-    store.put("chunks/aa/bb/00/x", Bytes::from_static(b"a")).await.unwrap();
-    store.put("chunks/aa/bb/11/y", Bytes::from_static(b"bb")).await.unwrap();
-    store.put("chunks/zz/99/w", Bytes::from_static(b"ccc")).await.unwrap();
+    store
+        .put("chunks/aa/bb/00/x", Bytes::from_static(b"a"))
+        .await
+        .unwrap();
+    store
+        .put("chunks/aa/bb/11/y", Bytes::from_static(b"bb"))
+        .await
+        .unwrap();
+    store
+        .put("chunks/zz/99/w", Bytes::from_static(b"ccc"))
+        .await
+        .unwrap();
     // tmp-partial artifacts must never appear in GC scans.
     std::fs::write(dir.path().join("chunks/partial.tmp-partial"), b"junk").unwrap();
 

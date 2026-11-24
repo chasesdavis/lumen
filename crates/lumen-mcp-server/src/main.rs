@@ -5,10 +5,10 @@
 //! This is the agent-native surface Helumi does not have: agents call
 //! structured tools instead of poking mounted files through Finder.
 
-use lumen_core::index::MetadataIndex;
-use lumen_mcp_server::tools::Tools;
-pub use lumen_mcp_server::session::{AuthConfig, Session};
 use clap::{Parser, ValueEnum};
+use lumen_core::index::MetadataIndex;
+pub use lumen_mcp_server::session::{AuthConfig, Session};
+use lumen_mcp_server::tools::Tools;
 use serde_json::{json, Value};
 use std::io::{BufRead, Write};
 use std::sync::Arc;
@@ -24,7 +24,11 @@ enum Transport {
 }
 
 #[derive(Debug, Parser)]
-#[command(name = "lumen-mcp-server", version, about = "Lumen MCP tool server exposing agent-native drive operations")]
+#[command(
+    name = "lumen-mcp-server",
+    version,
+    about = "Lumen MCP tool server exposing agent-native drive operations"
+)]
 struct Args {
     /// Transport mode for serving MCP clients.
     #[arg(short, long, value_enum, default_value_t = Transport::Stdio)]
@@ -84,17 +88,26 @@ fn serve_stdio(tools: Tools, auth_config: AuthConfig) {
     // subsequent tool calls in this process stream stay authorized.
     let mut session = Session::default();
     for line in stdin.lock().lines() {
-        let line = match line { Ok(l) => l, Err(_) => break };
-        if line.trim().is_empty() { continue }
+        let line = match line {
+            Ok(l) => l,
+            Err(_) => break,
+        };
+        if line.trim().is_empty() {
+            continue;
+        }
         let reply = handle_line(&tools, &auth_config, &mut session, &line);
         if reply.is_null() {
             continue;
         }
         match serde_json::to_string(&reply) {
-            Ok(s) => { let _ = writeln!(out, "{}", s); let _ = out.flush(); }
+            Ok(s) => {
+                let _ = writeln!(out, "{}", s);
+                let _ = out.flush();
+            }
             Err(e) => {
                 let fallback = error_response(Value::Null, -32603, &format!("encode error: {}", e));
-                let _ = writeln!(out, "{}", fallback); let _ = out.flush();
+                let _ = writeln!(out, "{}", fallback);
+                let _ = out.flush();
             }
         }
     }
@@ -112,12 +125,18 @@ fn serve_tcp(tools: Arc<Tools>, auth_config: AuthConfig, addr: String) -> std::i
         let tools = tools.clone();
         let auth_config = auth_config.clone();
         std::thread::spawn(move || {
-            use std::io::{BufReader};
-            let peer = stream.peer_addr().map(|a| a.to_string()).unwrap_or_default();
+            use std::io::BufReader;
+            let peer = stream
+                .peer_addr()
+                .map(|a| a.to_string())
+                .unwrap_or_default();
             tracing::info!("client connected: {peer}");
             let reader_stream = match stream.try_clone() {
                 Ok(s) => s,
-                Err(e) => { tracing::warn!("clone failed for {peer}: {e}"); return; }
+                Err(e) => {
+                    tracing::warn!("clone failed for {peer}: {e}");
+                    return;
+                }
             };
             let mut reader = BufReader::new(reader_stream);
             let mut writer = stream;
@@ -131,17 +150,25 @@ fn serve_tcp(tools: Arc<Tools>, auth_config: AuthConfig, addr: String) -> std::i
                     Ok(_) => {}
                     Err(_) => break,
                 }
-                if line.trim().is_empty() { continue }
+                if line.trim().is_empty() {
+                    continue;
+                }
                 let reply = handle_line(&tools, &auth_config, &mut session, &line);
-                if reply.is_null() { continue }
+                if reply.is_null() {
+                    continue;
+                }
                 match serde_json::to_string(&reply) {
                     Ok(s) => {
-                        if writeln!(writer, "{}", s).and_then(|_| writer.flush()).is_err() {
+                        if writeln!(writer, "{}", s)
+                            .and_then(|_| writer.flush())
+                            .is_err()
+                        {
                             break;
                         }
                     }
                     Err(e) => {
-                        let fallback = error_response(Value::Null, -32603, &format!("encode error: {}", e));
+                        let fallback =
+                            error_response(Value::Null, -32603, &format!("encode error: {}", e));
                         let _ = writeln!(writer, "{}", fallback);
                         let _ = writer.flush();
                     }
@@ -153,7 +180,12 @@ fn serve_tcp(tools: Arc<Tools>, auth_config: AuthConfig, addr: String) -> std::i
     Ok(())
 }
 
-fn handle_line(tools: &Tools, auth_config: &AuthConfig, session: &mut Session, line: &str) -> Value {
+fn handle_line(
+    tools: &Tools,
+    auth_config: &AuthConfig,
+    session: &mut Session,
+    line: &str,
+) -> Value {
     let msg: Value = match serde_json::from_str(line) {
         Ok(v) => v,
         Err(e) => return error_response(Value::Null, -32700, &format!("parse error: {}", e)),
@@ -199,31 +231,43 @@ fn handle_line(tools: &Tools, auth_config: &AuthConfig, session: &mut Session, l
             // Validates an API access token (JWT signed with the shared
             // LUMEN_JWT_SECRET) and marks this connection authorized.
             let params = msg.get("params").cloned().unwrap_or(json!({}));
-            let token = params.get("token")
+            let token = params
+                .get("token")
                 .and_then(|t| t.as_str())
                 .unwrap_or("")
                 .to_string();
             match auth_config.authorize(session, &token) {
-                Ok(()) => json!({"jsonrpc":"2.0","id":id,"result":{"authorized":true,"message":"session authorized; tool calls are now enabled"}}),
+                Ok(()) => {
+                    json!({"jsonrpc":"2.0","id":id,"result":{"authorized":true,"message":"session authorized; tool calls are now enabled"}})
+                }
                 Err(why) => error_response(id, -32001, &why),
             }
         }
         "tools/call" => {
             if !auth_config.allows_calls(session) {
-                return error_response(id, -32001, "not authorized: call the 'authorize' tool with a valid access token first");
+                return error_response(
+                    id,
+                    -32001,
+                    "not authorized: call the 'authorize' tool with a valid access token first",
+                );
             }
             let params = msg.get("params").cloned().unwrap_or(json!({}));
-            let name = params.get("name").and_then(|n| n.as_str()).unwrap_or("").to_string();
+            let name = params
+                .get("name")
+                .and_then(|n| n.as_str())
+                .unwrap_or("")
+                .to_string();
             let args = params.get("arguments").cloned().unwrap_or(json!({}));
             match tools.dispatch(&name, args) {
-                Ok(result) => json!({"jsonrpc":"2.0","id":id,"result":{"content":[{"type":"text","text":serde_json::to_string_pretty(&result).unwrap_or_default()}]}}),
+                Ok(result) => {
+                    json!({"jsonrpc":"2.0","id":id,"result":{"content":[{"type":"text","text":serde_json::to_string_pretty(&result).unwrap_or_default()}]}})
+                }
                 Err(e) => error_response(id, -32000, &format!("tool error: {}", e)),
             }
         }
         _ => error_response(id, -32601, &format!("method not found: {}", method)),
     }
 }
-
 
 fn tool_def(name: &str, desc: &str) -> Value {
     json!({"name": name, "description": desc})

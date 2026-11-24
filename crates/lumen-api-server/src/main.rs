@@ -5,8 +5,8 @@
 //! see the config block below. **NEVER** ship or commit real secrets: the
 //! default must always be overridden in production via LUMEN_JWT_SECRET.
 
-use lumen_api_server::routes::{router, AppState};
 use lumen_api_server::auth::KeyMaterial;
+use lumen_api_server::routes::{router, AppState};
 use lumen_api_server::usage::UsageLedger;
 use lumen_api_server::users::UserStore;
 use std::net::SocketAddr;
@@ -29,7 +29,9 @@ async fn main() {
     // File-backed persistence when paths are provided, in-memory otherwise.
     let users = match std::env::var("LUMEN_USERS_DB") {
         Ok(path) => {
-            if path.is_empty() { UserStore::open_memory().expect("user store init") } else {
+            if path.is_empty() {
+                UserStore::open_memory().expect("user store init")
+            } else {
                 UserStore::open(&path).expect("user store file open failed")
             }
         }
@@ -37,7 +39,9 @@ async fn main() {
     };
     let usage = match std::env::var("LUMEN_USAGE_DB") {
         Ok(path) => {
-            if path.is_empty() { UsageLedger::open_memory().expect("usage ledger init") } else {
+            if path.is_empty() {
+                UsageLedger::open_memory().expect("usage ledger init")
+            } else {
                 UsageLedger::open(&path).expect("usage ledger file open failed")
             }
         }
@@ -66,7 +70,5 @@ async fn main() {
     let listener = tokio::net::TcpListener::bind(addr)
         .await
         .unwrap_or_else(|_| panic!("failed to bind {addr}"));
-    axum::serve(listener, app)
-        .await
-        .expect("api server error");
+    axum::serve(listener, app).await.expect("api server error");
 }

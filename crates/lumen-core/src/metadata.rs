@@ -12,7 +12,7 @@ pub enum ItemType {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ChunkRef {
-    pub key: String,      // storage key (content-addressed)
+    pub key: String, // storage key (content-addressed)
     pub offset: u64,
     pub len: u64,
     pub fingerprint: [u8; 16],
@@ -22,9 +22,9 @@ pub struct ChunkRef {
 pub struct RemoteItem {
     pub id: Uuid,
     pub parent_id: Option<Uuid>,
-    pub name: String,     // encrypted WireName envelope when private files on
+    pub name: String, // encrypted WireName envelope when private files on
     pub item_type: ItemType,
-    pub size: u64,        // plaintext size for files
+    pub size: u64,             // plaintext size for files
     pub content_version: i64,  // bumped per content change (optimistic concurrency)
     pub metadata_version: i64, // bumped per rename/move
     pub chunks: Vec<ChunkRef>,
@@ -34,7 +34,9 @@ pub struct RemoteItem {
 
 impl RemoteItem {
     pub fn chunk_covering(&self, off: u64) -> Option<&ChunkRef> {
-        self.chunks.iter().find(|c| off >= c.offset && off < c.offset + c.len)
+        self.chunks
+            .iter()
+            .find(|c| off >= c.offset && off < c.offset + c.len)
     }
 }
 
@@ -45,16 +47,26 @@ pub struct DriveTree {
 }
 
 impl DriveTree {
-    pub fn new() -> Self { Self::default() }
+    pub fn new() -> Self {
+        Self::default()
+    }
 
-    pub fn upsert(&mut self, item: RemoteItem) { self.items.insert(item.id, item); }
+    pub fn upsert(&mut self, item: RemoteItem) {
+        self.items.insert(item.id, item);
+    }
 
-    pub fn remove(&mut self, id: &Uuid) { self.items.remove(id); }
+    pub fn remove(&mut self, id: &Uuid) {
+        self.items.remove(id);
+    }
 
-    pub fn get(&self, id: &Uuid) -> Option<&RemoteItem> { self.items.get(id) }
+    pub fn get(&self, id: &Uuid) -> Option<&RemoteItem> {
+        self.items.get(id)
+    }
 
     pub fn children_of(&self, parent: Option<Uuid>) -> Vec<&RemoteItem> {
-        let mut v: Vec<&RemoteItem> = self.items.values()
+        let mut v: Vec<&RemoteItem> = self
+            .items
+            .values()
             .filter(|i| i.parent_id == parent && !matches!(item_state(i), State::Tombstone))
             .collect();
         v.sort_by(|a, b| a.name.cmp(&b.name));
@@ -65,7 +77,9 @@ impl DriveTree {
     pub fn resolve(&self, path: &str) -> Option<&RemoteItem> {
         let mut cur = None;
         for seg in path.split('/').filter(|s| !s.is_empty()) {
-            cur = self.items.values()
+            cur = self
+                .items
+                .values()
                 .find(|i| i.parent_id == cur.map(|c: &RemoteItem| c.id) && i.name == seg);
             cur?;
         }
@@ -75,5 +89,10 @@ impl DriveTree {
 
 #[derive(PartialEq)]
 #[allow(dead_code)]
-enum State { Active, Tombstone }
-fn item_state(_i: &RemoteItem) -> State { State::Active }
+enum State {
+    Active,
+    Tombstone,
+}
+fn item_state(_i: &RemoteItem) -> State {
+    State::Active
+}

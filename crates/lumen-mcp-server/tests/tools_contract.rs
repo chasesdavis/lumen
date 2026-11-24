@@ -209,7 +209,7 @@ async fn list_search_metadata_read_contract() {
 #[tokio::test]
 async fn read_file_index_only_mode_reports_limitation() {
     let store = Arc::new(MockObjectStore::default());
-    let vfs = VfsOps::new(store.clone() as Arc<dyn ObjectStore>, crypto());
+    let _vfs = VfsOps::new(store.clone() as Arc<dyn ObjectStore>, crypto());
     let tools = Tools::with_index(MetadataIndex::open_memory().unwrap());
     let items = seed(&tools, store).await;
     let alpha = &items[1];

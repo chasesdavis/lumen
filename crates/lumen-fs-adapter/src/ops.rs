@@ -494,10 +494,10 @@ mod tests {
 
     #[tokio::test]
     async fn read_via_adapter_hits_storage_then_cache() {
-        let mut f = fixture().await;
+        let f = fixture().await;
         // Multi-chunk so cache vs storage distinction is observable.
         let data = vec![b'x'; 300 * 1024];
-        let id = seed_file(&mut f, "big.bin", None, data.clone()).await;
+        let id = seed_file(&f, "big.bin", None, data.clone()).await;
         let item = f.index.get_item(&id).unwrap();
         let got = f.ops.read("/big.bin", 0, item.size).await.unwrap();
         assert_eq!(got, data);

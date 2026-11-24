@@ -3,6 +3,7 @@
 //! storage usage reporting for metered billing.
 
 use crate::auth::{self, Claims, KeyMaterial};
+use crate::dodo_client::{CreateCheckoutRequest, DodoClient};
 use crate::usage::UsageLedger;
 use crate::users::UserStore;
 use axum::http::StatusCode;
@@ -32,6 +33,13 @@ pub struct AppState {
     /// index so gc admin passes have a live reference set. None keeps the
     /// server purely changelog/metadata-only (no store credentials here).
     pub gc_backend: Option<GcBackend>,
+    /// Optional Dodo checkout client. When present, POST /v1/billing/checkout
+    /// creates hosted sessions; when absent that route returns 501 so dev /
+    /// test deployments without Dodo credentials keep working.
+    pub dodo_client: Option<Arc<DodoClient>>,
+    /// Dashboard-created base subscription product id (pdt_...). Read from env
+    /// at boot, never hardcoded per Dodo's dashboard-managed-products rule.
+    pub dodo_base_product_id: String,
 }
 
 /// Server-side index + store pair used by the GC admin route. The index is
@@ -58,6 +66,8 @@ impl AppState {
             usage: UsageLedger::open_memory().expect("usage ledger init"),
             dodo_webhook_key: "whsec_lumen_dev_placeholder".into(),
             gc_backend: None,
+            dodo_client: None,
+            dodo_base_product_id: String::new(),
         }
     }
 
@@ -75,6 +85,8 @@ impl AppState {
             usage,
             dodo_webhook_key: "whsec_lumen_dev_placeholder".into(),
             gc_backend: None,
+            dodo_client: None,
+            dodo_base_product_id: String::new(),
         }
     }
 
@@ -87,6 +99,17 @@ impl AppState {
     /// Attach a server-side index + store for GC and reference tracking.
     pub fn with_gc_backend(mut self, backend: GcBackend) -> Self {
         self.gc_backend = Some(backend);
+        self
+    }
+
+    /// Attach a Dodo client + base product id to enable checkout creation.
+    pub fn with_dodo_client(
+        mut self,
+        client: Arc<DodoClient>,
+        base_product_id: impl Into<String>,
+    ) -> Self {
+        self.dodo_client = Some(client);
+        self.dodo_base_product_id = base_product_id.into();
         self
     }
 }
@@ -289,21 +312,45 @@ pub async fn dodo_webhook(
         crate::dodo::EVENT_PAYMENT_SUCCEEDED
         | crate::dodo::EVENT_SUBSCRIPTION_ACTIVE
         | crate::dodo::EVENT_SUBSCRIPTION_RENEWED => {
-            // Subscription fulfillment: match evt.data.customer_id against the
-            // users.dodo_customer_id column and grant plan access. Unknown
+            // Fulfillment order: (1) checkout session metadata carries our
+            // user_id - it was embedded at checkout creation from an
+            // authenticated JWT, so link_and_grant_by_user_id is the
+            // authoritative path and also persists customer_id. (2) Fallback:
+            // match evt.data.customer_id against the users.dodo_customer_id
+            // column (renewals of pre-metadata subscriptions). Unknown
             // customers still 200 - Dodo retries would not fix a mapping that
             // does not exist (checkout-before-signup race), so we ack and rely
             // on signup-time linking plus plan refresh on next login.
-            let fulfilled = evt
-                .data
+            let data = evt.data.as_ref();
+            let customer_id = data
                 .as_ref()
                 .and_then(|d| d.get("customer_id"))
+                .and_then(|v| v.as_str());
+            // Metadata-first fulfillment: user_id was embedded in the checkout
+            // session metadata (authenticated at creation), so it is the
+            // authoritative link - one UPDATE grants the plan AND persists
+            // customer_id for future renewals.
+            if let Some(user_id) = data
+                .and_then(|d| d.get("metadata"))
+                .and_then(|m| m.get("user_id"))
                 .and_then(|v| v.as_str())
-                .map(|cid| {
-                    state
-                        .users
-                        .grant_plan_by_dodo_customer(cid, crate::users::Plan::Base)
-                });
+            {
+                match state.users.link_and_grant_by_user_id(
+                    user_id,
+                    customer_id,
+                    crate::users::Plan::Base,
+                ) {
+                    Ok(true) => return Ok(Json(json!({ "received": true, "fulfilled": true }))),
+                    _ => return Ok(Json(json!({ "received": true, "fulfilled": false }))),
+                }
+            }
+            // Fallback for events without our metadata: grant by an already
+            // linked Dodo customer id (pre-metadata subscriptions, renewals).
+            let fulfilled = customer_id.map(|cid| {
+                state
+                    .users
+                    .grant_plan_by_dodo_customer(cid, crate::users::Plan::Base)
+            });
             match fulfilled {
                 Some(Ok(true)) => Ok(Json(json!({ "received": true, "fulfilled": true }))),
                 _ => Ok(Json(json!({ "received": true, "fulfilled": false }))),
@@ -390,6 +437,88 @@ pub async fn admin_gc(
     })))
 }
 
+/// POST /v1/billing/checkout - create a Dodo hosted checkout session for the
+/// base subscription. The authenticated user's id is embedded in the session
+/// metadata; when the webhook fires on payment, fulfillment links the Dodo
+/// customer and grants the plan via that metadata without a second lookup.
+///
+/// Request body: { "return_url": "...", "cancel_url": "..." } - both are
+/// client-facing UX URLs for post-payment redirect. Without a configured
+/// DodoClient (dev/test) this returns 501 so non-billing deployments stay
+/// functional.
+pub async fn billing_checkout(
+    state: axum::extract::State<SharedState>,
+    headers: axum::http::HeaderMap,
+    Json(req): Json<CheckoutRequest>,
+) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
+    let token = headers
+        .get(axum::http::header::AUTHORIZATION)
+        .and_then(|v| v.to_str().ok())
+        .and_then(|v| v.strip_prefix("Bearer "))
+        .unwrap_or("");
+    if token.is_empty() {
+        return Err((
+            StatusCode::UNAUTHORIZED,
+            Json(json!({"error": "missing bearer token"})),
+        ));
+    }
+    let claims = auth::verify(token, auth::TokenScope::Access, &state.keys).map_err(|_| {
+        (
+            StatusCode::UNAUTHORIZED,
+            Json(json!({"error": "invalid or expired token"})),
+        )
+    })?;
+    let dodo = state.dodo_client.as_ref().ok_or((
+        StatusCode::NOT_IMPLEMENTED,
+        Json(json!({"error": "billing not configured (no Dodo API credentials)"})),
+    ))?;
+    if state.dodo_base_product_id.is_empty() {
+        return Err((
+            StatusCode::NOT_IMPLEMENTED,
+            Json(json!({"error": "billing not configured (missing base product id)"})),
+        ));
+    }
+    let mut checkout_req = CreateCheckoutRequest::base_subscription(
+        &state.dodo_base_product_id,
+        &req.return_url,
+        &req.cancel_url,
+    );
+    let mut metadata = std::collections::HashMap::with_capacity(1);
+    metadata.insert("user_id".to_string(), claims.sub.clone());
+    if let Some(email) = req.email {
+        metadata.insert("email".to_string(), email);
+    }
+    checkout_req.metadata = Some(metadata);
+    let session = dodo.create_checkout(&checkout_req).await.map_err(|e| {
+        tracing::error!(error = %e, "dodo checkout creation failed");
+        (
+            StatusCode::BAD_GATEWAY,
+            Json(json!({"error": "checkout provider error"})),
+        )
+    })?;
+    tracing::info!(
+        session_id = %session.session_id,
+        user = %claims.sub,
+        "created Dodo checkout session"
+    );
+    Ok(Json(json!({
+        "session_id": session.session_id,
+        "checkout_url": session.checkout_url,
+    })))
+}
+
+#[derive(Deserialize)]
+pub struct CheckoutRequest {
+    /// Post-payment success/failure redirect target.
+    pub return_url: String,
+    /// Shown when customer navigates back from checkout.
+    pub cancel_url: String,
+    /// Optional email hint persisted alongside user_id in session metadata -
+    /// Dodo uses it to prefill the checkout form.
+    #[serde(default)]
+    pub email: Option<String>,
+}
+
 pub fn router(state: SharedState) -> axum::Router {
     axum::Router::new()
         .route("/v1/auth/signup", post(signup))
@@ -398,6 +527,7 @@ pub fn router(state: SharedState) -> axum::Router {
         .route("/v1/changes", get(changes))
         .route("/v1/files", post(file_upsert))
         .route("/v1/files/delete", post(file_delete))
+        .route("/v1/billing/checkout", post(billing_checkout))
         .route("/v1/billing/usage", get(usage))
         .route("/v1/admin/gc", post(admin_gc))
         .route("/v1/dodo/webhook", post(dodo_webhook))

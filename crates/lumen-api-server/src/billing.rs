@@ -143,7 +143,10 @@ mod tests {
         for gb in [50.0_f64, 500.0, 10_000.0] {
             assert_eq!(monthly_price_cents_byob(gb).unwrap(), BASE_MONTHLY_CENTS);
         }
-        assert!(BASE_MONTHLY_CENTS < HELUMI_MONTHLY_CENTS);
+        const _: () = assert!(
+            BASE_MONTHLY_CENTS < HELUMI_MONTHLY_CENTS,
+            "base tier must undercut the $10 flat competitor price"
+        );
     }
 
     #[test]

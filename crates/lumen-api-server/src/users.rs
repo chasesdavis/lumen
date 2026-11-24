@@ -138,6 +138,28 @@ impl UserStore {
         Ok(())
     }
 
+    /// Link + fulfill in one step for webhook events that carry checkout
+    /// metadata: the user id comes from OUR metadata (set at checkout
+    /// creation, authenticated by JWT), so no email/customer guesswork is
+    /// involved. Returns Err(NotFound) when the metadata points at a user
+    /// that does not exist (stale/garbage metadata) - callers surface that
+    /// as acknowledged-but-unfulfilled rather than erroring the webhook.
+    pub fn link_and_grant_by_user_id(
+        &self,
+        user_id: &str,
+        dodo_customer_id: Option<&str>,
+        plan: Plan,
+    ) -> Result<bool> {
+        let conn = self.conn.lock().expect("user store poisoned");
+        let changed = conn
+            .execute(
+                "UPDATE users SET plan = ?1, dodo_customer_id = COALESCE(?2, dodo_customer_id) WHERE id = ?3",
+                params![plan.as_str(), dodo_customer_id, user_id],
+            )
+            .map_err(|e| LumenError::Storage(e.to_string()))?;
+        Ok(changed > 0)
+    }
+
     /// Grant a plan to whichever user owns this Dodo customer id. Returns
     /// false when no user matches (checkout completed before signup or a
     /// stale webhook) - callers treat that as acknowledged-but-unfulfilled,

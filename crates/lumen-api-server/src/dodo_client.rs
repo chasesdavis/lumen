@@ -51,6 +51,11 @@ pub struct ProductCartItem {
 #[derive(Debug, Clone, Serialize)]
 pub struct CreateCheckoutRequest {
     pub product_cart: Vec<ProductCartItem>,
+    /// Custom key-value pairs propagated to the session and its webhook
+    /// events. We embed {"user_id": ...} so webhook fulfillment can link
+    /// the Dodo customer to our user without a second lookup round-trip.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub metadata: Option<std::collections::HashMap<String, String>>,
     /// The url to redirect after payment failure or success.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub return_url: Option<String>,
@@ -67,6 +72,7 @@ impl CreateCheckoutRequest {
                 product_id: product_id.into(),
                 quantity: 1,
             }],
+            metadata: None,
             return_url: Some(return_url.into()),
             cancel_url: Some(cancel_url.into()),
         }

@@ -112,7 +112,7 @@ async fn signup_login_usage_flow() {
     let (me_status, me) = call(state.clone(), "GET", "/v1/me", None, Some(&access)).await;
     assert_eq!(me_status, StatusCode::OK);
     assert_eq!(me["email"].as_str().unwrap(), "chase@example.com");
-    assert!(me["id"].as_str().unwrap().len() > 0);
+    assert!(!me["id"].as_str().unwrap().is_empty());
     // Fresh signup defaults to the base plan; webhook fulfillment upgrades
     // plan state in the store and /v1/me reads it fresh on every call.
     assert_eq!(me["plan"].as_str().unwrap(), "base");
@@ -260,6 +260,8 @@ async fn dodo_webhook_rejects_bad_and_accepts_signed_events() {
         usage: UsageLedger::open_memory().unwrap(),
         dodo_webhook_key: secret.to_string(),
         gc_backend: None,
+        dodo_client: None,
+        dodo_base_product_id: String::new(),
     });
     // Real current timestamp: the 5-minute replay tolerance is enforced.
     let ts = std::time::SystemTime::now()
@@ -345,6 +347,8 @@ async fn signed_subscription_active_webhook_fulfills_plan_for_linked_customer() 
         usage: UsageLedger::open_memory().unwrap(),
         dodo_webhook_key: secret.to_string(),
         gc_backend: None,
+        dodo_client: None,
+        dodo_base_product_id: String::new(),
     });
     let ts = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
@@ -373,6 +377,105 @@ async fn signed_subscription_active_webhook_fulfills_plan_for_linked_customer() 
         inspector.plan_of(&uid).unwrap(),
         lumen_api_server::users::Plan::Base
     );
+}
+
+#[tokio::test]
+async fn signed_webhook_with_metadata_user_id_links_customer_and_grants_plan() {
+    let state = dev_state();
+    let secret = "whsec_test_endpoint_secret";
+    let users = UserStore::open_memory().unwrap();
+    // No set_dodo_customer call: the whole point of checkout metadata is
+    // that fulfillment works without a pre-existing customer link.
+    let user = users
+        .signup("meta@example.com", "correct horse battery staple")
+        .unwrap();
+    let uid = user.id.clone();
+    let inspector = users.share();
+    let state = Arc::new(AppState {
+        changes: state.changes.clone(),
+        keys: KeyMaterial::from_secret(b"test-signing-key"),
+        users,
+        usage: UsageLedger::open_memory().unwrap(),
+        dodo_webhook_key: secret.to_string(),
+        gc_backend: None,
+        dodo_client: None,
+        dodo_base_product_id: String::new(),
+    });
+    let ts = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_secs();
+
+    // The exact payload shape a Dodo subscription.active webhook carries
+    // when the session was created with metadata {"user_id": ...}.
+    let body = format!(
+        r#"{{"type":"subscription.active","data":{{"customer_id":"cst_meta_1","product_id":"prod_base","metadata":{{"user_id":"{uid}"}}}}}}"#
+    );
+    let sig = sign_dodo(secret, "msg_meta", ts, &body);
+    let req = Request::builder()
+        .method("POST")
+        .uri("/v1/dodo/webhook")
+        .header("content-type", "application/json")
+        .header("webhook-id", "msg_meta")
+        .header("webhook-timestamp", ts.to_string())
+        .header("webhook-signature", sig)
+        .body(Body::from(body))
+        .unwrap();
+    let response = router(state.clone()).oneshot(req).await.unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+    let bytes = response.into_body().collect().await.unwrap().to_bytes();
+    let json: Value = serde_json::from_slice(&bytes).unwrap();
+    assert!(
+        json["fulfilled"].as_bool().unwrap(),
+        "metadata path must fulfill"
+    );
+
+    // Plan granted AND customer id linked in one pass: a future renewal
+    // webhook can fall back to grant_plan_by_dodo_customer.
+    assert_eq!(
+        inspector.plan_of(&uid).unwrap(),
+        lumen_api_server::users::Plan::Base
+    );
+}
+
+#[tokio::test]
+async fn billing_checkout_returns_501_without_dodo_config() {
+    let state = dev_state();
+    let creds = json!({"email": "nope@example.com", "password": "correct horse battery staple"});
+    let (_, signup_body) = call(state.clone(), "POST", "/v1/auth/signup", Some(creds), None).await;
+    let token = signup_body["token"].as_str().unwrap().to_string();
+
+    let (status, body) = call(
+        state,
+        "POST",
+        "/v1/billing/checkout",
+        Some(json!({
+            "return_url": "https://lumen.app/billing/done",
+            "cancel_url": "https://lumen.app/billing/cancel"
+        })),
+        Some(&token),
+    )
+    .await;
+    assert_eq!(status, StatusCode::NOT_IMPLEMENTED);
+    assert!(body["error"]
+        .as_str()
+        .unwrap()
+        .contains("billing not configured"));
+
+    // And without auth: 401 before any Dodo interaction.
+    let state2 = dev_state();
+    let (status2, _) = call(
+        state2,
+        "POST",
+        "/v1/billing/checkout",
+        Some(json!({
+            "return_url": "https://lumen.app/billing/done",
+            "cancel_url": "https://lumen.app/billing/cancel"
+        })),
+        None,
+    )
+    .await;
+    assert_eq!(status2, StatusCode::UNAUTHORIZED);
 }
 
 /// Local HMAC helper mirroring Dodo's Standard Webhooks signing scheme:

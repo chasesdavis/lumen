@@ -208,9 +208,9 @@ mod tests {
             .await
             .unwrap();
 
-        let mut file_a = item("a.txt", &[key_a.clone()]);
+        let mut file_a = item("a.txt", std::slice::from_ref(&key_a));
         index.upsert(&file_a).unwrap();
-        let file_b = item("b.txt", &[key_b.clone()]);
+        let file_b = item("b.txt", std::slice::from_ref(&key_b));
         index.upsert(&file_b).unwrap();
 
         // Simulate a deletion: row removed but chunk left behind.
@@ -257,7 +257,7 @@ mod tests {
             .await
             .unwrap();
 
-        let mut f = item("doc.md", &[old_key.clone()]);
+        let mut f = item("doc.md", std::slice::from_ref(&old_key));
         index.upsert(&f).unwrap();
 
         // Replace: bump versions, switch chunk list - old chunk orphaned.
@@ -304,7 +304,7 @@ mod tests {
             .await
             .unwrap();
 
-        let f = item("f.bin", &[live.clone()]);
+        let f = item("f.bin", std::slice::from_ref(&live));
         index.upsert(&f).unwrap();
 
         let meter = UsageMeter::disabled();

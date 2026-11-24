@@ -38,7 +38,7 @@ mod t {
         let attr = stat_to_attr(s, 7);
         // (0 + 511) / 512 = 0 would report zero allocation; spec floor of 1
         // keeps POSIX tools that assume nonzero blocks happy.
-        assert_eq!(attr.blocks, (size + 511) / 512);
+        assert_eq!(attr.blocks, size.div_ceil(512));
     }
 
     #[test]

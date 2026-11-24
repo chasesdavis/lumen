@@ -61,6 +61,12 @@ async fn main() {
     // to keep the API purely metadata/changelog-only.
     let gc_backend = build_gc_backend();
 
+    // Optional Dodo billing client. All four of LUMEN_DODO_API_KEY,
+    // LUMEN_DODO_BASE_PRODUCT_ID must be present to enable checkout; the
+    // webhook key alone is always read (webhook verification works without
+    // checkout creation). **NEVER** commit real keys - env only.
+    let dodo_client = build_dodo_client();
+
     let state = std::sync::Arc::new(AppState {
         changes: std::sync::Arc::new(lumen_core::changelog::ChangeLog::default()),
         keys,
@@ -69,6 +75,8 @@ async fn main() {
         dodo_webhook_key: std::env::var("LUMEN_DODO_WEBHOOK_KEY")
             .unwrap_or_else(|_| "whsec_lumen_dev_placeholder".into()),
         gc_backend,
+        dodo_client,
+        dodo_base_product_id: std::env::var("LUMEN_DODO_BASE_PRODUCT_ID").unwrap_or_default(),
     });
     let app = router(state);
 
@@ -80,6 +88,23 @@ async fn main() {
         .await
         .unwrap_or_else(|_| panic!("failed to bind {addr}"));
     axum::serve(listener, app).await.expect("api server error");
+}
+
+/// Construct the optional Dodo client from env. None (checkout route 501)
+/// unless both an API key and a base product id are configured - dev and
+/// test deployments stay fully functional without billing credentials.
+fn build_dodo_client() -> Option<std::sync::Arc<lumen_api_server::dodo_client::DodoClient>> {
+    let api_key = std::env::var("LUMEN_DODO_API_KEY").ok()?;
+    if api_key.is_empty() {
+        return None;
+    }
+    let cfg = match std::env::var("LUMEN_DODO_MODE").as_deref() {
+        Ok("live") => lumen_api_server::dodo_client::DodoClientConfig::live_mode(api_key),
+        _ => lumen_api_server::dodo_client::DodoClientConfig::test_mode(api_key),
+    };
+    Some(std::sync::Arc::new(
+        lumen_api_server::dodo_client::DodoClient::new(cfg).expect("dodo client init"),
+    ))
 }
 
 /// Construct the optional index + store pair from env. Returns None unless

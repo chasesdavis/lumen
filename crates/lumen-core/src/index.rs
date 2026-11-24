@@ -311,4 +311,67 @@ mod tests {
         ix.index_content(&b.id, "").unwrap();
         assert!(ix.search_content("sure", 10).unwrap().is_empty());
     }
+
+    /// Original test plan gate: SQLite index integrity under concurrent
+    /// writes. One shared MetadataIndex behind Arc, many writer threads
+    /// interleaving upsert/index while a reader thread searches mid-churn.
+    #[test]
+    fn concurrent_writers_keep_index_intact() {
+        let ix = std::sync::Arc::new(MetadataIndex::open_memory().unwrap());
+        const WRITERS: usize = 8;
+        const ITEMS_PER_WRITER: usize = 200;
+        let mut handles = Vec::new();
+        for w in 0..WRITERS {
+            let ix = ix.clone();
+            handles.push(std::thread::spawn(move || {
+                for i in 0..ITEMS_PER_WRITER {
+                    let now = chrono::Utc::now();
+                    let id = uuid::Uuid::new_v4();
+                    ix.upsert(&RemoteItem {
+                        id,
+                        parent_id: None,
+                        name: format!("w{} item {}", w, i),
+                        item_type: ItemType::File,
+                        size: i as u64,
+                        content_version: 1,
+                        metadata_version: 1,
+                        chunks: vec![],
+                        created_at: now,
+                        modified_at: now,
+                    })
+                    .unwrap();
+                    if i % 2 == 0 {
+                        let body = format!("writer {} body {}", w, i);
+                        ix.index_content(&id, &body).unwrap();
+                    }
+                }
+            }));
+        }
+        let reader_ix = ix.clone();
+        let reader = std::thread::spawn(move || {
+            for _ in 0..300 {
+                assert!(
+                    reader_ix.search_names("item", 1000).unwrap().len()
+                        <= WRITERS * ITEMS_PER_WRITER
+                );
+                assert!(
+                    reader_ix.search_content("body", 1000).unwrap().len()
+                        <= (WRITERS * ITEMS_PER_WRITER) / 2
+                );
+            }
+        });
+        for h in handles {
+            h.join().expect("writer panicked");
+        }
+        reader.join().expect("reader panicked");
+        // After the storm: exact counts prove nothing was lost or doubled.
+        assert_eq!(
+            ix.search_names("item", 2000).unwrap().len(),
+            WRITERS * ITEMS_PER_WRITER
+        );
+        assert_eq!(
+            ix.search_content("body", 2000).unwrap().len(),
+            (WRITERS * ITEMS_PER_WRITER) / 2
+        );
+    }
 }

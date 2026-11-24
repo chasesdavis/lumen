@@ -1303,6 +1303,7 @@ dependencies = [
  "chrono",
  "lumen-core",
  "lumen-fsprobe",
+ "tempfile",
  "thiserror 1.0.69",
  "tokio",
  "uuid",

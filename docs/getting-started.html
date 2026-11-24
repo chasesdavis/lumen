@@ -9,12 +9,21 @@
 <body>
   <header>
     <div class="container">
-      <a class="logo" href="/lumen/">Lumen<span>.</span></a>
-      <nav><a href="/lumen/">Home</a> <a href="/lumen/changelog.html">Changelog</a></nav>
+      <a class="logo" href="/lumen/">lumen<span>.</span></a>
+      <nav class="nav-links">
+        <a href="/lumen/#what">what it is</a>
+        <a href="/lumen/#agents">agents</a>
+        <a href="/lumen/#compare">compare</a>
+        <a href="/lumen/#pricing">pricing</a>
+        <a href="/lumen/getting-started.html">docs</a>
+        <a href="/lumen/changelog.html">changelog</a>
+        <a class="dl" href="https://github.com/chasesdavis/lumen/releases">download</a>
+      </nav>
     </div>
   </header>
-  <main class="container">
-    <h1>Getting started</h1>
+  <main class="doc">
+    <div class="doc-nav"><a class="on" href="#">getting started</a><a href="/lumen/changelog.html">changelog</a><a href="https://github.com/chasesdavis/lumen/releases">download</a></div>
+    <h1>get started with Lumen</h1>
     <p>Lumen is in open beta. The fastest path from install to a working drive:</p>
 
     <h2 id="requirements">Requirements</h2>
@@ -119,6 +128,11 @@ cargo run -p lumen-api-server --bin lumen-api-server</pre>
         API admin route honor this flush-first contract automatically.</dd>
     </dl>
   </main>
-  <footer><div class="container">Lumen open beta · <a href="/lumen/">Home</a></div></footer>
+  <footer>
+    <div class="container footer-grid">
+      <div><div class="foot-brand">lumen.</div><p style="margin-top:6px;">a drive for big files and the agents that work on them.</p></div>
+      <div class="f-links"><a href="/lumen/getting-started.html">docs</a><a href="/lumen/changelog.html">changelog</a><a href="https://github.com/chasesdavis/lumen">github</a><a href="https://github.com/chasesdavis/lumen/releases">releases</a></div>
+    </div>
+  </footer>
 </body>
 </html>

@@ -20,12 +20,22 @@
     <h2 id="requirements">Requirements</h2>
     <ul>
       <li>macOS 12+, Linux (FUSE), or Windows (WinFsp runtime)</li>
-      <li>Rust toolchain (for the beta; installers ship later)</li>
+      <li>Rust toolchain (for the beta) — or grab a prebuilt release:
+        <code>Lumen-&lt;version&gt;.dmg</code> from the releases page, containing all three binaries plus a first-run launcher. Install macFUSE first:
+        <code>brew install --cask macfuse</code>. On Windows, unzip
+        <code>Lumen-&lt;version&gt;-win64.zip</code> after installing
+        <a href="https://winfsp.dev/">WinFsp</a>.</li>
       <li>For S3 backends: your access key and secret key set as
         environment variables — never passed on argv</li>
     </ul>
 
     <h2 id="build">1. Build</h2>
+<p>From the prebuilt DMG: copy Lumen.app to /Applications and create
+  <code>~/Library/Application Support/Lumen/lumen.env</code> exporting
+  <code>LUMEN_INDEX_PATH</code>, <code>LUMEN_STORE_ENDPOINT</code>,
+  <code>LUMEN_STORE_BUCKET</code>, <code>LUMEN_MOUNT_POINT</code>,
+  <code>LUMEN_PASSWORD</code>. Then open Lumen.app.</p>
+<p>Or build from source:</p>
     <pre class="code">git clone https://github.com/waguriagentic/lumen.git
 cd lumen
 cargo build --workspace</pre>

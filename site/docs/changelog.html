@@ -17,13 +17,15 @@
     <article>
       <h2>v0.1 beta</h2>
       <ul>
+        <li>Checkout-to-webhook billing fulfillment closed end-to-end: POST /v1/billing/checkout embeds the authenticated user id in Dodo session metadata; the signed webhook fulfills metadata-first (plan grant + customer link in one UPDATE) with the pre-metadata customer-id path kept as fallback for renewals.</li>
         <li>Rust workspace core: FastCDC content-defined chunking, per-chunk AES-256-GCM envelope encryption with HKDF-derived keys, prefetch engine with learning-based priority queue, ordered cursor sync changelog.</li>
         <li>Storage adapters implementing one ObjectStore trait against Cloudflare R2, Backblaze B2, Storj, MinIO, and user-supplied S3 endpoints; LocalObjectStore for dogfooding and cross-process tests.</li>
         <li>Unix FUSE shim (macOS/Linux) and Windows WinFsp shim sharing one MountOps layer; deferred deletes, DirMarker read_directory protocol on Windows.</li>
         <li>MCP server: stdio + TCP transports, list/search (filename local, content opt-in), agent write path through CommitBatcher, authorize-gated JWT auth, gc_run tool with flush-first contract.</li>
         <li>Axum API server: signup/login/me routes, ordered changes feed, Dodo Payments integration (Standard Webhooks verification, checkout sessions, metered usage events) — billing is Dodo, not Stripe.</li>
         <li>Pricing architecture: $3/mo base plus storage at provider cost + 10% margin; BYOB mode at $3/mo flat at any volume. Mark-and-sweep GC with negative-delta billing reconciliation — reclaimed bytes reduce the metered amount.</li>
-        <li>103 passing tests across the workspace including COGS regression gates pinning the multi-provider price curve.</li>
+        <li>106 passing tests across the workspace including COGS regression gates pinning the multi-provider price curve.</li>
+        <li>Packaging pipeline: scripts/build-macos-dmg.sh produces a signed-optional Lumen.app bundle + verified UDZO DMG with all three binaries and a first-run launcher; scripts/build-windows-zip.ps1 produces the Windows portable ZIP on a Windows host (WinFsp bindgen cannot cross-compile).</li>
       </ul>
     </article>
   </main>

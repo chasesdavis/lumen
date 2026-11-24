@@ -17,6 +17,9 @@ If no cargo in PATH, source $HOME/.cargo/env first.
 | Run MCP server (TCP + persisted index) | cargo run -p lumen-mcp-server -- --transport tcp --listen 127.0.0.1:9317 --index-path /path/to/index.db |
 | Mount drive (Unix) | cargo run -p lumen-fuse-shim --bin lumen-mount -- --mountpoint /Volumes/Lumen --index-path ~/lumen.db --store-endpoint https://api.cloudflare.com/client/v4/accounts/<ACCOUNT>/r2 --bucket lumen-chunks |
 | Mount drive (Windows) | cargo run -p lumen-winfsp-shim --bin lumen-mount-winfsp -- --mountpoint C:\Lumen --index-path <INDEX_DB> --store-endpoint file://<STORE_DIR> --bucket lumen-chunks |
+| macOS distribution bundle + DMG | ./scripts/build-macos-dmg.sh (add SIGN_IDENTITY="Developer ID Application: <NAME>" to sign; artifacts land in dist/, which is gitignored) |
+| macOS bundle only, no DMG | ./scripts/build-macos-dmg.sh --no-dmg |
+| Windows portable ZIP | powershell scripts/build-windows-zip.ps1 (MUST run on a Windows box: bindgen needs WinFsp + Windows SDK headers; cross-compile from macOS is not possible) |
 
 ## Conventions
 

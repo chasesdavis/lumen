@@ -3,3 +3,5 @@
 .DS_Store
 .env
 *.db
+/dist/
+!dist/.gitkeep

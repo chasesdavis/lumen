@@ -80,8 +80,9 @@ mod contract {
 
     #[tokio::test]
     async fn s3_contract_against_minio_when_available() {
-        // Skip cleanly unless an endpoint is explicitly provided, but probe
-        // first when it is: never silently pass on unreachable endpoints.
+        // Skip cleanly unless an endpoint is explicitly provided. When one
+        // IS provided it must actually answer: transport errors are loud,
+        // not silent passes - a green run with a dead endpoint hides bugs.
         let Ok(endpoint) = std::env::var("MINIO_TEST_ENDPOINT") else {
             return;
         };
@@ -91,9 +92,9 @@ mod contract {
         // fixed dev credentials, local container only
         let store = S3Store::new(&endpoint, "lumen-test", "minioadmin", "minioadmin")
             .expect("build S3 client");
-        if store.head("contract/probe").await.is_err() {
-            return;
-        }
+        // The exercise() head of contract/probe doubles as the liveness
+        // probe: NotFound on first hit is expected and handled inside;
+        // anything unreachable bubbles up and fails this test loudly.
         exercise(&store).await;
     }
 }

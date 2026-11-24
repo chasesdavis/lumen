@@ -17,11 +17,18 @@ pub struct S3Store {
 
 impl S3Store {
     pub fn new(endpoint: &str, bucket: &str, access_key: &str, secret_key: &str) -> Result<Self> {
-        let store = AmazonS3Builder::new()
+        let mut store = AmazonS3Builder::new()
             .with_endpoint(endpoint)
             .with_bucket_name(bucket)
             .with_access_key_id(access_key)
-            .with_secret_access_key(secret_key)
+            .with_secret_access_key(secret_key);
+        // object_store refuses plaintext endpoints unless explicitly
+        // opted in. Local MinIO/dev deployments and self-hosted S3
+        // gateways run on http:// - honor the scheme the caller gives.
+        if endpoint.starts_with("http://") {
+            store = store.with_allow_http(true);
+        }
+        let store = store
             .build()
             .map_err(|e| LumenError::Storage(e.to_string()))?;
         Ok(Self {

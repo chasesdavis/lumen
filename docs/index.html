@@ -50,7 +50,7 @@
   <nav class="island" aria-label="Main">
     <a class="wordmark" href="#top" aria-current="location">lumen</a>
     <a href="#what"><span class="nav-wide">how it works</span><span class="nav-short">how</span></a>
-    <a href="#love">love</a><a href="#pricing">pricing</a><a href="#faq">faq</a>
+    <a href="#love">stories</a><a href="#pricing">pricing</a><a href="#faq">faq</a>
     <a class="nav-docs" href="./getting-started.html">docs</a>
     <button type="button" class="theme-switch" data-mode hidden aria-label="Use dark theme" title="Change color theme"><svg class="glyph" aria-hidden="true" focusable="false"><use href="#ui-contrast"/></svg></button>
   </nav>
@@ -603,7 +603,7 @@
 <section class="section wrap centered lf-gallery" id="gets" aria-labelledby="lf-gallery-title">
   <h2 id="lf-gallery-title">a closer look at the <em>drive.</em></h2>
   <div class="lf-grid">
-    <figure class="lf-example">
+    <figure class="lf-example" id="finder-drop" tabindex="-1">
       <div class="lf-scene lf-finder" aria-hidden="true">
         <div class="lf-menubar"><b>Finder</b><span>File</span><span>Edit</span><span>View</span><time datetime="09:41">9:41 AM</time></div>
         <div class="lf-window lf-browser">
@@ -618,7 +618,7 @@
       <figcaption><h3>drop footage into Finder</h3><p>drag a clip into a folder on the mounted Lumen drive.</p></figcaption>
     </figure>
 
-    <figure class="lf-example">
+    <figure class="lf-example" id="platform-mounts" tabindex="-1">
       <div class="lf-scene lf-explorer" aria-hidden="true">
         <div class="lf-window">
           <div class="lf-win-tabs"><span><svg class="lf-icon lf-folder"><use href="#lf-i-folder"/></svg>Lumen</span><i></i></div>
@@ -634,7 +634,7 @@
       <figcaption><h3>mount on Windows and Linux</h3><p>open <code>C:\Lumen</code> in File Explorer. on Linux, use a FUSE mount.</p></figcaption>
     </figure>
 
-    <figure class="lf-example">
+    <figure class="lf-example" id="range-reads" tabindex="-1">
       <div class="lf-scene lf-player" aria-hidden="true">
         <div class="lf-window lf-play-window">
           <div class="lf-titlebar"><i class="lf-lights"></i><b>coast-take.mov</b></div>
@@ -645,7 +645,7 @@
       <figcaption><h3>jump to a frame</h3><p>seek in a clip. lumen reads the byte range the player asks for.</p></figcaption>
     </figure>
 
-    <figure class="lf-example">
+    <figure class="lf-example" id="cached-replay" tabindex="-1">
       <div class="lf-scene lf-cache" aria-hidden="true">
         <div class="lf-window">
           <div class="lf-titlebar"><i class="lf-lights"></i><b>Read trace</b></div>
@@ -660,7 +660,7 @@
       <figcaption><h3>replay from cache</h3><p>rewind to a cached chunk without fetching it again. play forward and lumen can read ahead.</p></figcaption>
     </figure>
 
-    <figure class="lf-example">
+    <figure class="lf-example" id="changed-chunks" tabindex="-1">
       <div class="lf-scene lf-cdc" aria-hidden="true">
         <div class="lf-window">
           <div class="lf-titlebar"><i class="lf-lights"></i><b>Chunk map</b></div>
@@ -677,7 +677,7 @@
       <figcaption><h3>send the edit, not the whole file</h3><p>FastCDC reuses unchanged chunks when you save.</p></figcaption>
     </figure>
 
-    <figure class="lf-example">
+    <figure class="lf-example" id="own-bucket" tabindex="-1">
       <div class="lf-scene lf-storage" aria-hidden="true">
         <div class="lf-window">
           <div class="lf-titlebar"><i class="lf-lights"></i><b>lumen.env</b></div>
@@ -932,62 +932,41 @@
 
 <section id="love" class="section centered" aria-labelledby="lc-title">
   <div class="wrap">
-    <h2 id="lc-title">what people said about <em>Helumi.</em></h2>
-    <p class="letters-deck">these are paraphrases of posts about Helumi, not Lumen endorsements. each card opens the original post.</p>
+    <h2 id="lc-title">a day with <em>Lumen.</em></h2>
+    <p class="letters-deck">fictional scenes from the edit bay to the terminal. choose a card to see the feature behind it.</p>
 
     <div class="lc-board">
       <button type="button" class="lc-toggle" aria-controls="lc-posts" hidden>pause scrolling</button>
       <div class="lc-posts" id="lc-posts">
         <div class="lc-lane">
           <div class="lc-strip">
-            <ul class="lc-set" role="list" aria-label="Posts about Helumi, row 1">
+            <ul class="lc-set" role="list" aria-label="Creative workflows">
               <li>
-                <a class="lc-card" href="https://x.com/Ojash_101/status/2106360422337282082" rel="external noreferrer">
-                  <small class="lc-credit">About Helumi, not Lumen (paraphrase)</small>
-                  <p>Ojash needed a drive like Helumi and signed up within minutes of finding it.</p>
-                  <span class="lc-by"><span class="lc-face" aria-hidden="true">O</span><span><b>Ojash</b><small>@Ojash_101</small></span></span>
+                <a class="lc-card" href="#range-reads">
+                  <small class="lc-credit">Fictional scene 01</small>
+                  <p>The director wants two more beats before the cut. I scrub back to the drummer’s count-in without downloading the whole concert.</p>
+                  <span class="lc-by"><span class="lc-face" aria-hidden="true">PE</span><span><b>Picture editor</b><small>Range reads</small></span></span>
                 </a>
               </li>
               <li>
-                <a class="lc-card" href="https://x.com/MaxJasper_/status/2117719904350769577" rel="external noreferrer">
-                  <small class="lc-credit">About Helumi, not Lumen (paraphrase)</small>
-                  <p>After trying Helumi and SpaceFS, Max found Helumi the more reliable of the two.</p>
-                  <span class="lc-by"><span class="lc-face" aria-hidden="true">M</span><span><b>Max</b><small>@MaxJasper_</small></span></span>
+                <a class="lc-card" href="#cached-replay">
+                  <small class="lc-credit">Fictional scene 02</small>
+                  <p>There’s a chair squeak under the punchline. I loop those same two seconds of the interview until I know exactly where to cut.</p>
+                  <span class="lc-by"><span class="lc-face" aria-hidden="true">PP</span><span><b>Podcast producer</b><small>Chunk cache</small></span></span>
                 </a>
               </li>
               <li>
-                <a class="lc-card" href="https://x.com/mohastaf/status/2112946646061588524" rel="external noreferrer">
-                  <small class="lc-credit">About Helumi, not Lumen (paraphrase)</small>
-                  <p>Mustaf edited large videos without crowding the Mac. The founder also shipped an improvement that day.</p>
-                  <span class="lc-by"><span class="lc-face" aria-hidden="true">M</span><span><b>Mustaf</b><small>@mohastaf</small></span></span>
+                <a class="lc-card" href="#changed-chunks">
+                  <small class="lc-credit">Fictional scene 03</small>
+                  <p>Doors open at seven, not eight. I fix one line of type on the poster and save the layered file back to the drive.</p>
+                  <span class="lc-by"><span class="lc-face" aria-hidden="true">PD</span><span><b>Poster designer</b><small>Saving an edit</small></span></span>
                 </a>
               </li>
               <li>
-                <a class="lc-card" href="https://x.com/Shonik/status/2107031716028411972" rel="external noreferrer">
-                  <small class="lc-credit">About Helumi, not Lumen (paraphrase)</small>
-                  <p>For Shonik, clearing space on the Mac had been a struggle, and Helumi helped.</p>
-                  <span class="lc-by"><span class="lc-face" aria-hidden="true">S</span><span><b>Shonik</b><small>@Shonik</small></span></span>
-                </a>
-              </li>
-              <li>
-                <a class="lc-card" href="https://x.com/whereIsOneee/status/2106857535063941172" rel="external noreferrer">
-                  <small class="lc-credit">About Helumi, not Lumen (paraphrase)</small>
-                  <p>The price of upgrading a Mac’s internal storage made the idea interesting to 1.ONE.</p>
-                  <span class="lc-by"><span class="lc-face" aria-hidden="true">1</span><span><b>1.ONE</b><small>@whereIsOneee</small></span></span>
-                </a>
-              </li>
-              <li>
-                <a class="lc-card" href="https://x.com/hii_mohit/status/2106024890772111733" rel="external noreferrer">
-                  <small class="lc-credit">About Helumi, not Lumen (paraphrase)</small>
-                  <p>Mohit had already been looking for the kind of drive Helumi offered.</p>
-                  <span class="lc-by"><span class="lc-face" aria-hidden="true">MV</span><span><b>Mohit Vaswani</b><small>@hii_mohit</small></span></span>
-                </a>
-              </li>
-              <li>
-                <a class="lc-card" href="https://x.com/ntgyc/status/2110055444328980980" rel="external noreferrer">
-                  <small class="lc-credit">About Helumi, not Lumen (paraphrase)</small>
-                  <p>Nate shared a positive first impression just after downloading Helumi.</p>
-                  <span class="lc-by"><span class="lc-face" aria-hidden="true">N</span><span><b>Nate</b><small>@ntgyc</small></span></span>
+                <a class="lc-card" href="#finder-drop">
+                  <small class="lc-credit">Fictional scene 04</small>
+                  <p>Camera A caught the vows. Camera B caught the dog stealing a sandwich. I drop both takes into the wedding folder in Finder.</p>
+                  <span class="lc-by"><span class="lc-face" aria-hidden="true">WV</span><span><b>Wedding videographer</b><small>Adding footage</small></span></span>
                 </a>
               </li>
             </ul>
@@ -995,61 +974,33 @@
         </div>
         <div class="lc-lane" data-reverse>
           <div class="lc-strip">
-            <ul class="lc-set" role="list" aria-label="Posts about Helumi, row 2">
+            <ul class="lc-set" role="list" aria-label="Research and studio workflows">
               <li>
-                <a class="lc-card" href="https://x.com/rudraxx13/status/2106994250550497742" rel="external noreferrer">
-                  <small class="lc-credit">About Helumi, not Lumen (paraphrase)</small>
-                  <p>Rudra liked opening files the usual way without setting aside disk space for them.</p>
-                  <span class="lc-by"><span class="lc-face" aria-hidden="true">RS</span><span><b>Rudra Satani</b><small>@rudraxx13</small></span></span>
+                <a class="lc-card" href="#agents">
+                  <small class="lc-credit">Fictional scene 05</small>
+                  <p>I remember putting “rain” in the filename. Before my agent opens any footage, I ask it for a list of matches.</p>
+                  <span class="lc-by"><span class="lc-face" aria-hidden="true">DR</span><span><b>Documentary researcher</b><small>MCP search</small></span></span>
                 </a>
               </li>
               <li>
-                <a class="lc-card" href="https://x.com/hitrishala/status/2110434678041870576" rel="external noreferrer">
-                  <small class="lc-credit">About Helumi, not Lumen (paraphrase)</small>
-                  <p>Extra storage appealed to TRISHALA because the everyday Mac workflow could stay the same.</p>
-                  <span class="lc-by"><span class="lc-face" aria-hidden="true">T</span><span><b>TRISHALA</b><small>@hitrishala</small></span></span>
+                <a class="lc-card" href="#own-bucket">
+                  <small class="lc-credit">Fictional scene 06</small>
+                  <p>Our studio already has a B2 bucket. I’d rather use it for the next shoot than set up another storage account.</p>
+                  <span class="lc-by"><span class="lc-face" aria-hidden="true">SM</span><span><b>Studio manager</b><small>Bring your own bucket</small></span></span>
                 </a>
               </li>
               <li>
-                <a class="lc-card" href="https://x.com/domene/status/2110243177588232533" rel="external noreferrer">
-                  <small class="lc-credit">About Helumi, not Lumen (paraphrase)</small>
-                  <p>Jose liked both the idea behind Helumi and how the product looked.</p>
-                  <span class="lc-by"><span class="lc-face" aria-hidden="true">JD</span><span><b>Jose Domene</b><small>@domene</small></span></span>
+                <a class="lc-card" href="#security">
+                  <small class="lc-credit">Fictional scene 07</small>
+                  <p>This interview is under embargo until Friday. I want the audio encrypted on my laptop before it reaches the bucket.</p>
+                  <span class="lc-by"><span class="lc-face" aria-hidden="true">OH</span><span><b>Oral historian</b><small>Local encryption</small></span></span>
                 </a>
               </li>
               <li>
-                <a class="lc-card" href="https://x.com/cupseycode/status/2106780306388758865" rel="external noreferrer">
-                  <small class="lc-credit">About Helumi, not Lumen (paraphrase)</small>
-                  <p>Cupsey asked whether a file on the Helumi drive really opens as usual in Finder.</p>
-                  <span class="lc-by"><span class="lc-face" aria-hidden="true">C</span><span><b>Cupsey</b><small>@cupseycode</small></span></span>
-                </a>
-              </li>
-              <li>
-                <a class="lc-card" href="https://x.com/ahmedgagan11/status/2106282282722238967" rel="external noreferrer">
-                  <small class="lc-credit">About Helumi, not Lumen (paraphrase)</small>
-                  <p>Ahmed singled out the Helumi landing page for praise.</p>
-                  <span class="lc-by"><span class="lc-face" aria-hidden="true">AG</span><span><b>Ahmed Gagan</b><small>@ahmedgagan11</small></span></span>
-                </a>
-              </li>
-              <li>
-                <a class="lc-card" href="https://x.com/attacomsian/status/2106315556320387406" rel="external noreferrer">
-                  <small class="lc-credit">About Helumi, not Lumen (paraphrase)</small>
-                  <p>It was the website that caught Atta’s eye.</p>
-                  <span class="lc-by"><span class="lc-face" aria-hidden="true">A</span><span><b>Atta</b><small>@attacomsian</small></span></span>
-                </a>
-              </li>
-              <li>
-                <a class="lc-card" href="https://x.com/nucro/status/2110013381730062745" rel="external noreferrer">
-                  <small class="lc-credit">About Helumi, not Lumen (paraphrase)</small>
-                  <p>Orçun liked the look of Helumi and responded as a fellow Mac app developer.</p>
-                  <span class="lc-by"><span class="lc-face" aria-hidden="true">OF</span><span><b>Orçun Flanör</b><small>@nucro</small></span></span>
-                </a>
-              </li>
-              <li>
-                <a class="lc-card" href="https://x.com/amitkushh/status/2106023424003051639" rel="external noreferrer">
-                  <small class="lc-credit">About Helumi, not Lumen (paraphrase)</small>
-                  <p>Amit cheered on the team and the product they’d made.</p>
-                  <span class="lc-by"><span class="lc-face" aria-hidden="true">AK</span><span><b>Amit Kushwaha</b><small>@amitkushh</small></span></span>
+                <a class="lc-card" href="#platform-mounts">
+                  <small class="lc-credit">Fictional scene 08</small>
+                  <p>My analysis script takes a folder path. I point it at the mounted field recordings on Linux and leave the script alone.</p>
+                  <span class="lc-by"><span class="lc-face" aria-hidden="true">RE</span><span><b>Research engineer</b><small>Linux mount</small></span></span>
                 </a>
               </li>
             </ul>

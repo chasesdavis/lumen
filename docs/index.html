@@ -1,189 +1,261 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Lumen — more drive than your mac has room for</title>
-  <meta name="description" content="A real encrypted drive on macOS 12+, Windows, and Linux. Files stream in seconds, take zero bytes on disk, and agents get an MCP port. $3/mo base, storage at provider cost." />
-  <link rel="stylesheet" href="/lumen/style.css?v=2" />
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%23101010'/><text x='50' y='68' font-size='58' font-family='-apple-system' font-weight='800' fill='%23b6f24b' text-anchor='middle'>L</text></svg>" />
+  <title>Lumen — more drive for your mac, without buying a new one</title>
+  <meta name="description" content="A real encrypted drive on macOS 12+, Windows and Linux. Files open in a second, take zero bytes on disk, and agents get an MCP port. $3/mo base, storage at provider cost." />
+  <link rel="stylesheet" href="/lumen/style.css?v=3" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%230d0d0f'/><text x='50' y='68' font-size='58' font-family='-apple-system' font-weight='700' fill='%23b6f24b' text-anchor='middle'>L</text></svg>" />
+  <script>
+    (function () {
+      var saved = null;
+      try { saved = localStorage.getItem('lumen-theme'); } catch (e) {}
+      var sys = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      document.documentElement.setAttribute('data-theme', saved || sys);
+    })();
+  </script>
 </head>
 <body>
-  <header>
-    <div class="container">
-      <a class="logo" href="/lumen/">lumen<span>.</span></a>
-      <nav class="nav-links">
-        <a href="#what">what it is</a>
-        <a href="#agents">agents</a>
-        <a href="#compare">compare</a>
-        <a href="#pricing">pricing</a>
-        <a href="#faq">faq</a>
-        <a href="/lumen/getting-started.html">docs</a>
-        <a class="dl" href="https://github.com/chasesdavis/lumen/releases">download</a>
-      </nav>
+  <nav class="nav" aria-label="Main">
+    <a class="brand" href="/lumen/" aria-label="Lumen">
+      <svg viewBox="0 0 100 100" aria-hidden="true"><rect width="100" height="100" rx="22" fill="currentColor" opacity=".08"/><text x="50" y="68" font-size="58" font-family="-apple-system" font-weight="700" fill="currentColor" text-anchor="middle">L</text></svg>
+    </a>
+    <a class="hide-s" href="#what">how it works</a>
+    <a class="hide-s" href="#agents">agents</a>
+    <a class="hide-s" href="#compare">compare</a>
+    <a class="hide-s" href="#pricing">pricing</a>
+    <a class="hide-s" href="#faq">faq</a>
+    <a href="/lumen/getting-started.html">docs</a>
+    <a class="dl" href="https://github.com/chasesdavis/lumen/releases">download</a>
+    <button class="theme-btn" id="theme" aria-label="Toggle dark mode" title="Toggle theme">◐</button>
+  </nav>
+
+  <header class="hero wrap">
+    <span class="label rise">open beta · universal mac build</span>
+    <h1 class="hero-title rise d1" style="margin-top: var(--s-4);">more <em>drive</em> for your
+      <span class="hero-tile"><svg viewBox="0 0 100 100" aria-hidden="true"><rect width="100" height="100" rx="22" fill="currentColor" opacity=".12"/><text x="50" y="68" font-size="58" font-family="-apple-system" font-weight="700" fill="currentColor" text-anchor="middle">L</text></svg></span>
+      mac,<br />without buying a new one.</h1>
+    <p class="body rise d2">a real drive in finder and explorer. files open in a second and take zero bytes on disk. your bucket, your keys, and an mcp port so agents work the drive directly.</p>
+    <div class="btns rise d3">
+      <a class="btn" href="https://github.com/chasesdavis/lumen/releases">download for mac</a>
+      <a class="btn ghost" href="https://github.com/chasesdavis/lumen/releases/download/v0.1.0-beta.1/Lumen-0.1.0-win64.zip">windows zip</a>
+    </div>
+    <p class="hero-note rise d3">free to download · needs macOS 12+ · intel + apple silicon</p>
+
+    <div class="stage rise d4" id="stage">
+      <div class="desktop">
+        <div class="menubar">
+          <b>Lumen</b><span>File</span><span>Edit</span><span>View</span><span>Go</span><span>Window</span><span>Help</span>
+          <span class="right"><span>◍</span><span>Wi-Fi</span><span>100%</span><span id="clock">6:42 PM</span></span>
+        </div>
+        <div class="window">
+          <div class="win-bar">
+            <div class="lights"><i></i><i></i><i></i></div>
+            <div class="win-path">Lumen › Client Work</div>
+          </div>
+          <div class="win-body">
+            <div class="side">
+              <b>favourites</b>
+              <span>AirDrop</span><span>Recents</span><span>Applications</span>
+              <b>locations</b>
+              <span class="on">Lumen <span class="cloud">◍</span></span><span>Macintosh HD</span>
+              <b>projects</b>
+              <span>Brand</span><span>Films</span>
+            </div>
+            <div class="rows">
+              <div class="cols"><span>Name</span><span style="text-align:right">Size</span><span style="text-align:right">On Disk</span></div>
+              <div class="frow sel"><span class="fname"><span class="icon" style="background:#7a5cff">MOV</span><em>wedding-film_final.mov</em></span><span class="fsize">48.2 GB</span><span class="fdisk zero">0 bytes</span></div>
+              <div class="frow"><span class="fname"><span class="icon" style="background:#8a8577">MD</span><em>edit-notes.md</em></span><span class="fsize">12 KB</span><span class="fdisk zero">0 bytes</span></div>
+              <div class="frow"><span class="fname"><span class="icon" style="background:#c0392b">PDF</span><em>pitch-deck.pdf</em></span><span class="fsize">48 MB</span><span class="fdisk zero">0 bytes</span></div>
+              <div class="frow"><span class="fname"><span class="icon" style="background:#2b8a6e">MP4</span><em>drone-coast_4k.mp4</em></span><span class="fsize">21.7 GB</span><span class="fdisk zero">0 bytes</span></div>
+              <div class="frow"><span class="fname"><span class="icon" style="background:#8e44ad">PSD</span><em>album-cover.psd</em></span><span class="fsize">2.3 GB</span><span class="fdisk zero">0 bytes</span></div>
+              <div class="frow"><span class="fname"><span class="icon" style="background:#2b6ea8">WAV</span><em>podcast-ep42.wav</em></span><span class="fsize">1.1 GB</span><span class="fdisk zero">0 bytes</span></div>
+            </div>
+          </div>
+          <div class="win-status"><span>6 items · 73.4 GB</span><span>212.4 GB available on Mac</span></div>
+        </div>
+      </div>
+      <div class="agent">
+        <div class="head">agent session <span class="tag">mcp · stdio</span></div>
+        <div class="log">
+          <span class="line"><span class="ok">→</span> <span class="t">search_files</span>("wedding-final")</span>
+          <span class="line"><span class="ok">←</span> 1 match · Client Work/</span>
+          <span class="line"><span class="ok">→</span> <span class="t">read</span>(id, 0–8 MiB)</span>
+          <span class="line"><span class="ok">←</span> 8.0 MiB · cached 0 B on disk</span>
+        </div>
+      </div>
     </div>
   </header>
 
-  <section class="hero">
-    <div class="container hero-grid">
-      <div>
-        <span class="tag"><span class="dot"></span> open beta · universal mac build</span>
-        <h1 class="display" style="margin-top: 22px;">more drive than your mac has room for, <em>on every os.</em></h1>
-        <p class="sub">a real drive in finder and explorer. files stream in seconds and take zero bytes on disk. your bucket, your keys — and an mcp port so agents work the drive directly.</p>
-        <div class="cta-row">
-          <a class="btn lime" href="https://github.com/chasesdavis/lumen/releases">download for macOS <small>· free beta</small></a>
-          <a class="btn ghost" href="#compare">see the difference</a>
-        </div>
-        <p class="hero-meta">macOS 12+ · Windows · Linux · any S3 bucket · end-to-end encrypted — <a href="https://github.com/chasesdavis/lumen/releases/download/v0.1.0-beta.1/Lumen-0.1.0-win64.zip">windows zip</a></p>
-      </div>
-      <div class="finder-wrap" style="position: relative;">
-        <div class="finder">
-          <div class="titlebar">
-            <div class="lights"><i></i><i></i><i></i></div>
-            <div class="path">Lumen › Client Work</div>
-          </div>
-          <div class="body">
-            <div class="side">
-              <b>favourites</b>
-              <span>AirDrop</span>
-              <span>Recents</span>
-              <span>Applications</span>
-              <b>locations</b>
-              <span class="on">Lumen <span class="cloud">◍</span></span>
-              <span>Macintosh HD</span>
-              <b>projects</b>
-              <span>Brand</span>
-              <span>Films</span>
-            </div>
-            <div class="main">
-              <div class="cols"><span>Name</span><span style="text-align:right">Size</span><span style="text-align:right">On Disk</span></div>
-              <div class="row sel">
-                <span class="fname"><span class="icon" style="background:#7a5cff">MOV</span><em>wedding-film_final.mov</em></span>
-                <span class="size">48.2 GB</span><span class="disk zero">0 bytes</span>
-              </div>
-              <div class="row">
-                <span class="fname"><span class="icon" style="background:#8a8577">MD</span><em>edit-notes.md</em></span>
-                <span class="size">12 KB</span><span class="disk zero">0 bytes</span>
-              </div>
-              <div class="row">
-                <span class="fname"><span class="icon" style="background:#c0392b">PDF</span><em>pitch-deck.pdf</em></span>
-                <span class="size">48 MB</span><span class="disk zero">0 bytes</span>
-              </div>
-              <div class="row">
-                <span class="fname"><span class="icon" style="background:#2b8a6e">MP4</span><em>drone-coast_4k.mp4</em></span>
-                <span class="size">21.7 GB</span><span class="disk zero">0 bytes</span>
-              </div>
-              <div class="row">
-                <span class="fname"><span class="icon" style="background:#8e44ad">PSD</span><em>album-cover.psd</em></span>
-                <span class="size">2.3 GB</span><span class="disk zero">0 bytes</span>
-              </div>
-              <div class="row">
-                <span class="fname"><span class="icon" style="background:#2b6ea8">WAV</span><em>podcast-ep42.wav</em></span>
-                <span class="size">1.1 GB</span><span class="disk zero">0 bytes</span>
-              </div>
-            </div>
-          </div>
-          <div class="status"><span>6 items · 73.4 GB</span><span>212.4 GB available on Mac</span></div>
-        </div>
-        <div class="agent">
-          <div class="head">agent session <span class="tag2">mcp · stdio</span></div>
-          <div class="log">
-            <span><span class="ok">→</span> <span class="tool">search_files</span>("wedding-final")</span>
-            <span><span class="ok">←</span> 1 match · Client Work/</span>
-            <span><span class="ok">→</span> <span class="tool">read</span>(id, 0–8 MiB)</span>
-            <span><span class="ok">←</span> 8.0 MiB · cached 0 B on disk</span>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <div class="ticker">
-    <div class="container">
-      <span><b>macOS 12+</b> intel + apple silicon</span>
-      <span><b>Windows 10/11</b> via winfsp</span>
-      <span><b>Linux</b> via fuse3</span>
-      <span><b>r2 · b2 · storj · minio</b> or your bucket</span>
-      <span><b>mcp</b> stdio + tcp</span>
+  <div class="crawl" aria-hidden="true">
+    <div class="crawl-track" id="crawl">
+      <span><b>fastcdc</b> chunking</span><span><b>AES-256-GCM</b> per chunk</span><span><b>HKDF</b> key derivation</span>
+      <span><b>r2 · b2 · storj · minio</b></span><span><b>winfsp</b></span><span><b>fuse3</b></span><span><b>mcp</b> stdio + tcp</span>
+      <span><b>110</b> tests green</span><span><b>0 bytes</b> on disk</span><span><b>0.8 s</b> to first frame</span>
     </div>
   </div>
 
-  <section id="what">
-    <div class="container">
-      <div class="sec-head">
-        <span class="kicker">what it is</span>
-        <h2>a new drive next to macintosh hd. except the terabytes live somewhere else.</h2>
-        <p class="sub">your files look, open and save like normal — in the apps you already use. they just never occupy your disk, and the server only ever holds ciphertext.</p>
+  <section class="section centered" id="work">
+    <div class="wrap">
+      <span class="kicker rise">built for every kind of work</span>
+      <h2 class="rise">big files, <em>every</em> kind.</h2>
+      <p class="body rise d1">in the cloud, open in a second — in the apps you already use.</p>
+      <div class="tabs rise d2" role="tablist" aria-label="Workloads">
+        <button class="tab" role="tab" aria-selected="true" data-panel="p-video">video editors</button>
+        <button class="tab" role="tab" aria-selected="false" data-panel="p-photo">photographers</button>
+        <button class="tab" role="tab" aria-selected="false" data-panel="p-audio">music makers</button>
+        <button class="tab" role="tab" aria-selected="false" data-panel="p-design">designers</button>
+        <button class="tab" role="tab" aria-selected="false" data-panel="p-study">students</button>
+        <button class="tab" role="tab" aria-selected="false" data-panel="p-agent">agents</button>
       </div>
-      <div class="steps">
-        <div class="step">
-          <span class="n">01</span>
+      <div class="panel-wrap rise d3">
+        <div class="panel on" id="p-video" role="tabpanel">
+          <div class="window">
+            <div class="win-bar"><div class="lights"><i></i><i></i><i></i></div><div class="win-path">wedding film · timeline</div></div>
+            <div class="panel-body">
+              <div class="frow"><span class="fname"><span class="icon" style="background:#7a5cff">MOV</span><em>ceremony_cam-a.mov</em></span><span class="fsize">38.6 GB</span><span class="fdisk zero">streaming</span></div>
+              <div class="frow sel"><span class="fname"><span class="icon" style="background:#7a5cff">MOV</span><em>vows_4k.mov</em></span><span class="fsize">12.4 GB</span><span class="fdisk zero">0 bytes</span></div>
+              <div class="frow"><span class="fname"><span class="icon" style="background:#2b8a6e">WAV</span><em>first-dance_song.wav</em></span><span class="fsize">64 MB</span><span class="fdisk zero">0 bytes</span></div>
+              <div class="badge">▶ 0.8 s to first frame · scrub skips ranges</div>
+            </div>
+          </div>
+          <p class="panel-caption">davinci, final cut, premiere — no import step, no copies.</p>
+        </div>
+        <div class="panel" id="p-photo" role="tabpanel" hidden>
+          <div class="window">
+            <div class="win-bar"><div class="lights"><i></i><i></i><i></i></div><div class="win-path">DSC_0412.ARW · 6000 × 4000 · RAW</div></div>
+            <div class="panel-body">
+              <div class="frow"><span class="fname"><span class="icon" style="background:#8a8577">ARW</span><em>DSC_0412.ARW</em></span><span class="fsize">48 MB</span><span class="fdisk zero">0 bytes</span></div>
+              <div class="frow"><span class="fname"><span class="icon" style="background:#8a8577">ARW</span><em>DSC_0413.ARW</em></span><span class="fsize">47 MB</span><span class="fdisk zero">0 bytes</span></div>
+              <div class="frow"><span class="fname"><span class="icon" style="background:#8a8577">ARW</span><em>DSC_0415.ARW</em></span><span class="fsize">49 MB</span><span class="fdisk zero">0 bytes</span></div>
+              <div class="badge">340-frame set · zero bytes on disk</div>
+            </div>
+          </div>
+          <p class="panel-caption">cull a whole shoot without hydrating a single raw.</p>
+        </div>
+        <div class="panel" id="p-audio" role="tabpanel" hidden>
+          <div class="window">
+            <div class="win-bar"><div class="lights"><i></i><i></i><i></i></div><div class="win-path">session · 96 kHz</div></div>
+            <div class="panel-body">
+              <div class="frow"><span class="fname"><span class="icon" style="background:#2b6ea8">WAV</span><em>vocals_take-4.wav</em></span><span class="fsize">412 MB</span><span class="fdisk zero">0 bytes</span></div>
+              <div class="frow"><span class="fname"><span class="icon" style="background:#2b6ea8">WAV</span><em>harmony.wav</em></span><span class="fsize">388 MB</span><span class="fdisk zero">0 bytes</span></div>
+              <div class="frow"><span class="fname"><span class="icon" style="background:#2b6ea8">WAV</span><em>rhodes.wav</em></span><span class="fsize">702 MB</span><span class="fdisk zero">0 bytes</span></div>
+              <div class="badge">92 bpm · A min · 4/4</div>
+            </div>
+          </div>
+          <p class="panel-caption">multi-track takes stream; comping never fills the boot disk.</p>
+        </div>
+        <div class="panel" id="p-design" role="tabpanel" hidden>
+          <div class="window">
+            <div class="win-bar"><div class="lights"><i></i><i></i><i></i></div><div class="win-path">hero-render.psd · 42 layers</div></div>
+            <div class="panel-body">
+              <div class="frow"><span class="fname"><span class="icon" style="background:#8e44ad">PSD</span><em>hero-render.psd</em></span><span class="fsize">1.4 GB</span><span class="fdisk zero">0 bytes</span></div>
+              <div class="frow"><span class="fname"><span class="icon" style="background:#2b8a6e">TIF</span><em>forest-8k.tif</em></span><span class="fsize">412 MB</span><span class="fdisk zero">0 bytes</span></div>
+              <div class="frow"><span class="fname"><span class="icon" style="background:#c0392b">AI</span><em>poster-4x5.ai</em></span><span class="fsize">96 MB</span><span class="fdisk zero">0 bytes</span></div>
+              <div class="badge">42 layers · saves re-upload only changed chunks</div>
+            </div>
+          </div>
+          <p class="panel-caption">fastcdc means every save costs the delta, not the file.</p>
+        </div>
+        <div class="panel" id="p-study" role="tabpanel" hidden>
+          <div class="window">
+            <div class="win-bar"><div class="lights"><i></i><i></i><i></i></div><div class="win-path">Semester 4 › physics 204</div></div>
+            <div class="panel-body">
+              <div class="frow"><span class="fname"><span class="icon" style="background:#2b8a6e">MP4</span><em>lecture-14.mp4</em></span><span class="fsize">1.1 GB</span><span class="fdisk zero">0 bytes</span></div>
+              <div class="frow"><span class="fname"><span class="icon" style="background:#8a8577">MD</span><em>second-law-notes.md</em></span><span class="fsize">9 KB</span><span class="fdisk zero">0 bytes</span></div>
+              <div class="frow"><span class="fname"><span class="icon" style="background:#c0392b">PDF</span><em>problem-set-6.pdf</em></span><span class="fsize">1.2 MB</span><span class="fdisk zero">0 bytes</span></div>
+              <div class="badge">watch 34:00 again — the agent found it</div>
+            </div>
+          </div>
+          <p class="panel-caption">lecture recordings stream; notes stay local and searchable.</p>
+        </div>
+        <div class="panel" id="p-agent" role="tabpanel" hidden>
+          <div class="window">
+            <div class="win-bar"><div class="lights"><i></i><i></i><i></i></div><div class="win-path">mcp · stdio</div></div>
+            <div class="panel-body">
+              <div class="frow"><span class="fname"><span class="icon" style="background:#2b8a6e">MCP</span><em>list_projects()</em></span><span class="fsize">4 projects</span><span class="fdisk zero">2 ms</span></div>
+              <div class="frow"><span class="fname"><span class="icon" style="background:#2b8a6e">MCP</span><em>search_files("broll")</em></span><span class="fsize">3 hits</span><span class="fdisk zero">local</span></div>
+              <div class="frow"><span class="fname"><span class="icon" style="background:#2b8a6e">MCP</span><em>read_file_range(id, 0, 4)</em></span><span class="fsize">4 MiB</span><span class="fdisk zero">0 bytes</span></div>
+              <div class="badge">cursor · claude code · codex speak this natively</div>
+            </div>
+          </div>
+          <p class="panel-caption">no finder scraping. structured tools over the encrypted index.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="what">
+    <div class="wrap">
+      <span class="kicker rise">what it is</span>
+      <h2 class="rise">a new drive next to macintosh hd.</h2>
+      <p class="body rise d1">your files look, open and save like normal — they just never occupy your disk, and the server only ever holds ciphertext.</p>
+      <div class="editorial">
+        <div class="ed-row rise">
+          <span class="n">1</span>
           <h3>it mounts like a drive.</h3>
-          <p>Finder on macOS, Explorer on Windows, any path on Linux. POSIX semantics, mmap paths, rename, truncate. video apps and compilers see a filesystem, not a sync folder.</p>
+          <p>finder on macOS, explorer on windows, any path on linux. posix semantics, mmap, rename, truncate. apps see a filesystem, not a sync folder.</p>
         </div>
-        <div class="step">
-          <span class="n">02</span>
+        <div class="ed-row rise">
+          <span class="n">2</span>
           <h3>it streams, it doesn't copy.</h3>
-          <p>only the byte ranges your app asks for are fetched, decrypted and cached. hit play on a 48 GB film and it starts on the first frames. your disk stays empty.</p>
+          <p>only the byte ranges your app asks for are fetched, decrypted and cached. hit play on a 48 gb film and it starts on the first frames. your disk stays empty.</p>
         </div>
-        <div class="step">
-          <span class="n">03</span>
+        <div class="ed-row rise">
+          <span class="n">3</span>
           <h3>it encrypts before upload.</h3>
-          <p>content-defined chunking, AES-256-GCM per chunk, keys derived from yours via HKDF and bound to fingerprints. the master key never leaves your machine.</p>
+          <p>aes-256-gcm per chunk, keys derived from yours via hkdf and bound to fingerprints. the master key never leaves your machine.</p>
         </div>
       </div>
-    </div>
-  </section>
-
-  <section style="padding-top: 0;">
-    <div class="container">
       <div class="flow">
-        <div class="frame">
-          <b>drag</b>
-          <div class="dropzone">drop 48.2 GB onto Lumen<br />or into any folder</div>
-          <div class="filechip"><span class="icon" style="background:#7a5cff">MOV</span> wedding-film_final.mov <span class="sz">48.2 GB</span></div>
-          <span class="cap">chunked at ~1 MiB boundaries, deduped, encrypted, uploaded.</span>
-        </div>
-        <div class="frame">
-          <b>stream</b>
-          <div class="play"><div class="disc">▶</div></div>
-          <span class="zero-badge">0.8 s to first frame</span>
-          <span class="cap">player requests ranges; the prefetcher warms the next chunks ahead of demand.</span>
-        </div>
-        <div class="frame">
-          <b>open</b>
-          <div class="filechip"><span class="icon" style="background:#8e44ad">PSD</span> album-cover.psd <span class="sz">2.3 GB</span></div>
-          <div class="filechip"><span class="icon" style="background:#2b8a6e">MP4</span> drone-coast_4k.mp4 <span class="sz">21.7 GB</span></div>
-          <span class="cap">double-click in photoshop, davinci, final cut — no import step.</span>
-        </div>
+        <div class="frame rise"><b>drag</b><div class="dropzone">drop 48.2 GB onto lumen<br />or into any folder</div><div class="filechip"><span class="icon" style="background:#7a5cff">MOV</span> wedding-film_final.mov <span class="sz">48.2 GB</span></div><span class="cap">chunked at ~1 MiB boundaries, deduped, encrypted, uploaded.</span></div>
+        <div class="frame rise d1"><b>stream</b><div class="play"><div class="disc">▶</div></div><span class="badge">0.8 s to first frame</span><span class="cap">the prefetcher warms the next chunks before demand.</span></div>
+        <div class="frame rise d2"><b>open</b><div class="filechip"><span class="icon" style="background:#8e44ad">PSD</span> album-cover.psd <span class="sz">2.3 GB</span></div><div class="filechip"><span class="icon" style="background:#2b8a6e">MP4</span> drone-coast_4k.mp4 <span class="sz">21.7 GB</span></div><span class="cap">double-click in photoshop, davinci, final cut.</span></div>
       </div>
     </div>
   </section>
 
-  <section class="dark" id="agents">
-    <div class="container">
-      <div class="sec-head">
-        <span class="kicker">for agents</span>
-        <h2>your drive is an api. agents stop scraping finder.</h2>
-        <p class="sub">Lumen ships an MCP server over the encrypted index. filename search runs locally, fully offline. content reads pull only the ranges an agent needs. write, rename and gc are real tools with a commit-batched changelog behind them.</p>
+  <section class="section" id="gets">
+    <div class="wrap">
+      <span class="kicker rise">what you get</span>
+      <h2 class="rise">the things that usually <em>don't</em> exist.</h2>
+      <div class="grid2">
+        <div class="feat rise"><span class="dot">◍</span><span><b>runs where helumi doesn't</b><span>macOS 12+, windows 10/11, linux. one rust core, thin platform shims.</span></span></div>
+        <div class="feat rise"><span class="dot">▤</span><span><b>bring your own bucket</b><span>r2, b2, storj, minio or any s3 — $3 flat, zero storage markup.</span></span></div>
+        <div class="feat rise"><span class="dot">⌘</span><span><b>mcp server built in</b><span>list, search, range-read and write tools for cursor, claude, codex.</span></span></div>
+        <div class="feat rise"><span class="dot">≈</span><span><b>fastcdc edits</b><span>saving a file re-encrypts its changed neighbourhood, not the whole tail.</span></span></div>
+        <div class="feat rise"><span class="dot">▶</span><span><b>predictive prefetch</b><span>recency × frequency × sequence scoring warms chunks ahead of demand.</span></span></div>
+        <div class="feat rise"><span class="dot">⌁</span><span><b>0 bytes on disk</b><span>zero residency by default. pin a folder for offline and only that folder lands.</span></span></div>
+        <div class="feat rise"><span class="dot">⟲</span><span><b>billing that shrinks</b><span>deleting files lowers the metered amount through negative ledger deltas.</span></span></div>
+        <div class="feat rise"><span class="dot">⛨</span><span><b>index stays local</b><span>filenames, chunk maps and tags never travel in plaintext.</span></span></div>
       </div>
-      <div class="tools">
-        <span>list_projects</span><span>search_files</span><span>list_files</span><span>read_file_range</span><span>write_file</span><span>delete_file</span><span>index_content</span><span>gc_run</span>
-      </div>
-      <div class="agent-grid">
-        <div class="term">
-          <div class="ln"><span class="p">$</span> lumen-mcp-server --transport stdio --index-path ~/.lumen/index.db</div>
-          <div class="ln"><span class="p">›</span> <span class="t">list_projects</span>()</div>
-          <div class="ln"><span class="r">Client Work, Films, Brand, Archive</span></div>
-          <div class="ln"><span class="p">›</span> <span class="t">search_files</span>("broll", project: "Films")</div>
-          <div class="ln"><span class="r">3 matches · metadata index, 2 ms</span></div>
-          <div class="ln"><span class="p">›</span> <span class="t">read_file_range</span>(id, 0, 4194304)</div>
-          <div class="ln"><span class="r">4.0 MiB · decrypted locally</span></div>
-          <div class="ln"><span class="p">›</span> <span class="t">write_file</span>("Films/cuts/v3.md", ...)</div>
-          <div class="ln"><span class="r">ok · committed to changelog seq 1041</span></div>
+    </div>
+  </section>
+
+  <section class="section" id="agents">
+    <div class="wrap">
+      <div class="ink-block">
+        <span class="label">for agents</span>
+        <h2 style="margin-top: var(--s-3);">your drive is an api. agents stop scraping finder.</h2>
+        <p class="body">lumen ships an mcp server over the encrypted index. filename search runs locally, fully offline. content reads pull only the ranges an agent needs. write, rename and gc are real tools with a commit-batched changelog behind them.</p>
+        <div class="tools">
+          <span>list_projects</span><span>search_files</span><span>list_files</span><span>read_file_range</span><span>write_file</span><span>delete_file</span><span>index_content</span><span>gc_run</span>
         </div>
-        <div>
-          <pre class="code"><span class="c">// any MCP client: cursor, claude code, codex</span>
+        <div class="agent-grid">
+          <div class="term">
+            <div class="ln"><span class="p">$</span> lumen-mcp-server --transport stdio --index-path ~/.lumen/index.db</div>
+            <div class="ln"><span class="p">›</span> <span class="t">list_projects</span>()</div>
+            <div class="ln"><span class="r">Client Work, Films, Brand, Archive</span></div>
+            <div class="ln"><span class="p">›</span> <span class="t">search_files</span>("broll", project: "Films")</div>
+            <div class="ln"><span class="r">3 matches · metadata index, 2 ms</span></div>
+            <div class="ln"><span class="p">›</span> <span class="t">read_file_range</span>(id, 0, 4194304)</div>
+            <div class="ln"><span class="r">4.0 MiB · decrypted locally</span></div>
+            <div class="ln"><span class="p">›</span> <span class="t">write_file</span>("Films/cuts/v3.md", ...)</div>
+            <div class="ln"><span class="r">ok · committed to changelog seq 1041</span></div>
+          </div>
+          <div>
+            <pre class="code"><span class="c">// any MCP client: cursor, claude code, codex</span>
 {
   "mcpServers": {
     "lumen": {
@@ -193,43 +265,21 @@
     }
   }
 }</pre>
-          <p style="color:#9d978b; font-size: 14px; margin-top: 16px;">same login tokens as the api. local index, zero round-trips for search. the files never leave as plaintext.</p>
+            <p class="body" style="font-size: 13px;">same login tokens as the api. local index, zero round-trips for search. files never leave as plaintext.</p>
+          </div>
         </div>
       </div>
     </div>
   </section>
 
-  <section>
-    <div class="container">
-      <div class="sec-head">
-        <span class="kicker">built for every kind of work</span>
-        <h2>if it's big, it belongs on Lumen.</h2>
-      </div>
-      <div class="personas">
-        <span>video editors <i>prores, 4k</i></span>
-        <span>photographers <i>raw, 340-frame sets</i></span>
-        <span>music makers <i>96 kHz takes</i></span>
-        <span>designers <i>psd, 42 layers</i></span>
-        <span>engineers <i>builds, container images</i></span>
-        <span>agents <i>tools, not clicks</i></span>
-        <span>families <i>the archive</i></span>
-        <span>students <i>lecture recordings</i></span>
-      </div>
-    </div>
-  </section>
-
-  <section id="compare" style="padding-top: 0;">
-    <div class="container">
-      <div class="sec-head">
-        <span class="kicker">compare</span>
-        <h2>the others sync folders. <em style="font-style:normal; color:var(--dim)">lumen is a drive.</em></h2>
-        <p class="sub">icloud and dropbox hydrate whole files onto your disk. helumi brought true streaming to the mac — but only the newest mac. we run the same class of product on everything.</p>
-      </div>
-      <div class="compare-wrap">
+  <section class="section" id="compare">
+    <div class="wrap">
+      <span class="kicker rise">compare</span>
+      <h2 class="rise">the others sync folders. <em>lumen is a drive.</em></h2>
+      <p class="body rise d1">icloud and dropbox hydrate whole files. helumi streams — on the newest mac only. we do the same class of product on everything.</p>
+      <div class="compare-wrap rise d2">
         <table>
-          <thead>
-            <tr><th></th><th>iCloud</th><th>Dropbox</th><th>Google Drive</th><th>Helumi</th><th class="you">Lumen</th></tr>
-          </thead>
+          <thead><tr><th></th><th>iCloud</th><th>Dropbox</th><th>Google Drive</th><th>Helumi</th><th class="you">Lumen</th></tr></thead>
           <tbody>
             <tr class="group"><td colspan="6">platforms</td></tr>
             <tr><td>macOS</td><td class="part">current only</td><td class="yes">✓</td><td class="yes">✓</td><td class="part">26.2+ only</td><td class="you yes">✓ 12+</td></tr>
@@ -249,63 +299,56 @@
           </tbody>
         </table>
       </div>
-      <p class="small-note">Checked against public docs, nov 2026. iCloud "dataless files" are eviction hints, not streaming — apps still wait for the hydrate. Google's virtual disk is workspace-only. helumi requires macOS 26.2 tahoe and cloudflare r2.</p>
+      <p class="small-note">checked against public docs, nov 2026. icloud "dataless files" are eviction hints, not streaming — apps still wait for the hydrate. google's virtual disk is workspace-only. helumi requires macOS 26.2 tahoe and cloudflare r2.</p>
     </div>
   </section>
 
-  <section style="padding-top: 0;">
-    <div class="container">
-      <div class="sec-head">
-        <span class="kicker">security</span>
-        <h2>not even us.</h2>
-        <p class="sub">every chunk is sealed on your machine before a byte moves. the provider stores opaque blobs. compromise of one chunk key exposes exactly one chunk.</p>
-      </div>
+  <section class="section" id="security">
+    <div class="wrap">
+      <span class="kicker rise">security</span>
+      <h2 class="rise">not even us.</h2>
+      <p class="body rise d1">every chunk is sealed on your machine before a byte moves. the provider stores opaque blobs. compromise of one chunk key exposes exactly one chunk.</p>
       <div class="enc-grid">
-        <div class="enc-list">
-          <div><b>AES-256-GCM</b> per chunk, unique nonce, AAD-bound to the chunk fingerprint — substitution across chunks fails closed.</div>
+        <div class="enc-list rise">
+          <div><b>AES-256-GCM</b> per chunk, unique nonce, AAD-bound to the fingerprint — substitution across chunks fails closed.</div>
           <div><b>HKDF-SHA256</b> derives every chunk key from your master key; the master never reaches storage or our api.</div>
           <div><b>fastcdc</b> boundaries mean an edit re-encrypts only its neighbourhood — not the whole file, not the tail.</div>
           <div><b>the index stays local.</b> filenames, chunk maps and tags sit in an encrypted-at-rest sqlite file on your device.</div>
         </div>
-        <div class="keybox">
+        <div class="keybox rise d1">
           <b>provider view of your drive</b><br /><br />
-          chunks/9f2c…a1  <span style="opacity:.5">37 b2 91 04 …</span><br />
-          chunks/1d88…7e  <span style="opacity:.5">9c 02 fa 77 …</span><br />
-          chunks/44b0…d3  <span style="opacity:.5">e1 51 6b 2a …</span><br /><br />
+          chunks/9f2c…a1 &nbsp;<span style="opacity:.5">37 b2 91 04 …</span><br />
+          chunks/1d88…7e &nbsp;<span style="opacity:.5">9c 02 fa 77 …</span><br />
+          chunks/44b0…d3 &nbsp;<span style="opacity:.5">e1 51 6b 2a …</span><br /><br />
           <b>your view</b><br />
-          wedded-film_final.mov · 48.2 GB · 6,104 chunks
+          wedding-film_final.mov · 48.2 GB · 6,104 chunks
         </div>
       </div>
     </div>
   </section>
 
-  <section id="pricing">
-    <div class="container">
-      <div class="sec-head">
-        <span class="kicker">pricing</span>
-        <h2>one honest base price. storage at cost.</h2>
-        <p class="sub">$3/mo for the software, then provider cost + 10% for what you actually store — metered from real ciphertext bytes, shrinkable by gc. or plug in your own bucket and pay $3 flat forever.</p>
-      </div>
+  <section class="section centered" id="pricing">
+    <div class="wrap">
+      <span class="kicker rise">pricing</span>
+      <h2 class="rise">one honest base price. storage at cost.</h2>
+      <p class="body rise d1">$3/mo for the software, then provider cost + 10% for what you store — metered from real ciphertext bytes, shrinkable by gc. or bring your own bucket and pay $3 flat forever.</p>
       <div class="price-grid">
-        <div class="price-card you">
-          <span class="label">managed</span>
+        <div class="price-card you rise">
+          <span class="plabel">managed</span>
           <div class="amount">$3<small>/mo + storage</small></div>
-          <p style="color:#c9c3b7; font-size:14px;">we run the bucket, you keep the keys. cheapest provider is routed per file; the ledger follows real usage.</p>
-          <table class="price-table">
-            <thead><tr><th>usage</th><th class="num">routed cost / mo</th></tr></thead>
-            <tbody>
-              <tr><td>10 GB</td><td class="num">$3.08</td></tr>
-              <tr><td>100 GB</td><td class="num">$3.80</td></tr>
-              <tr><td>1 TB</td><td class="num">$11.22</td></tr>
-            </tbody>
-          </table>
-          <p style="color:#8f8a80; font-size:12px; margin-top:12px;">vs helumi's flat $10: 62% cheaper at 100 GB, and still cheaper at 1 TB on b2 routing.</p>
-          <div class="cta-row" style="margin-top: 18px;"><a class="btn lime" href="https://github.com/chasesdavis/lumen/releases">start the beta</a></div>
+          <p>we run the bucket, you keep the keys. the cheapest provider is routed per file; the ledger follows real usage.</p>
+          <table class="ptable"><thead><tr><th>usage</th><th class="num">cost / mo</th></tr></thead><tbody>
+            <tr><td>10 GB</td><td class="num">$3.08</td></tr>
+            <tr><td>100 GB</td><td class="num">$3.80</td></tr>
+            <tr><td>1 TB</td><td class="num">$11.22</td></tr>
+          </tbody></table>
+          <p style="font-size:12px;color:#8f8a80;">vs helumi's $10 flat: 62% cheaper at 100 GB, still cheaper at 1 TB on b2 routing.</p>
+          <a class="btn lime" href="https://github.com/chasesdavis/lumen/releases">start the beta</a>
         </div>
-        <div class="price-card">
-          <span class="label">byob</span>
+        <div class="price-card rise d1">
+          <span class="plabel">byob</span>
           <div class="amount">$3<small>/mo flat</small></div>
-          <p style="color:var(--dim); font-size:14px;">point lumen at your own r2, b2, storj or any s3 endpoint. zero storage markup at any volume — the numbers are yours, not ours.</p>
+          <p>point lumen at your own r2, b2, storj or any s3 endpoint. zero storage markup at any volume.</p>
           <ul>
             <li>same client, same encryption</li>
             <li>credentials stay in env vars</li>
@@ -317,54 +360,106 @@
     </div>
   </section>
 
-  <section id="faq" style="padding-top: 0;">
-    <div class="container">
-      <div class="sec-head"><span class="kicker">questions, answered</span><h2>the obvious ones.</h2></div>
-      <div style="margin-top: 36px;">
-        <details><summary>what is lumen?</summary><div class="a">a drive that mounts next to macintosh hd with terabytes behind it. files open in place, take zero bytes on disk, and stay end-to-end encrypted. an mcp server exposes the same drive to agents.</div></details>
-        <details><summary>does it work on my mac?</summary><div class="a">macOS 12 monterey or newer, intel or apple silicon — one universal build. we deliberately don't use apple's 26-only drive api, so older macs are first-class instead of abandoned.</div></details>
-        <details><summary>windows and linux?</summary><div class="a">yes. windows uses winfsp, linux uses fuse3, both over the same rust core and mount semantics. the windows zip ships from the same tag as the mac dmg.</div></details>
-        <details><summary>how is this different from icloud, dropbox or google drive?</summary><div class="a">they sync or hydrate whole files and fill your disk. lumen is a filesystem: apps request byte ranges, the client fetches and decrypts just those. a 48 GB film never occupies 48 GB to play.</div></details>
-        <details><summary>how is it different from helumi?</summary><div class="a">helumi is mac-only, requires macOS 26.2, locks storage to cloudflare r2 and flat-charges $10. lumen runs on 12+, windows and linux, takes any s3 bucket, costs $3 plus cost, and speaks MCP natively instead of just appearing in finder.</div></details>
-        <details><summary>will it work with davinci, final cut, premiere, photoshop?</summary><div class="a">they see a normal drive, so yes. the test suite pins xcode build-in-volume, docker bind-mounts and video scrub patterns specifically because those are where fake drives break.</div></details>
+  <section class="section" id="faq">
+    <div class="wrap centered">
+      <span class="kicker rise">questions, answered</span>
+      <h2 class="rise">the obvious ones.</h2>
+      <div class="faq rise d1">
+        <details><summary>what is lumen?</summary><div class="a">a drive that mounts next to macintosh hd with terabytes behind it. files open in place, take zero bytes on disk and stay end-to-end encrypted. an mcp server exposes the same drive to agents.</div></details>
+        <details><summary>does it work on my mac?</summary><div class="a">macOS 12 monterey or newer, intel or apple silicon — one universal build. we deliberately don't use apple's 26-only drive api, so older macs are first-class.</div></details>
+        <details><summary>windows and linux?</summary><div class="a">yes. windows uses winfsp, linux uses fuse3, both over the same rust core. the windows zip ships from the same tag as the mac dmg and is built by ci-grade cross-compilation.</div></details>
+        <details><summary>how is this different from icloud, dropbox or google drive?</summary><div class="a">they sync or hydrate whole files and fill your disk. lumen is a filesystem: apps request byte ranges and the client fetches just those. a 48 GB film never occupies 48 GB to play.</div></details>
+        <details><summary>how is it different from helumi?</summary><div class="a">helumi is mac-only, requires macOS 26.2, locks storage to cloudflare r2 and flat-charges $10. lumen runs on 12+, windows and linux, takes any s3 bucket, costs $3 plus cost and speaks mcp natively instead of just appearing in finder.</div></details>
+        <details><summary>will it work with davinci, final cut, premiere, photoshop?</summary><div class="a">they see a normal drive, so yes. the suite pins xcode build-in-volume, docker bind-mounts and video scrub patterns specifically because those are where fake drives break.</div></details>
         <details><summary>where are my files stored?</summary><div class="a">in the bucket you choose — r2, b2, storj, minio or your own s3 endpoint. managed mode routes to the cheapest provider per file. everything arrives there already encrypted.</div></details>
         <details><summary>what if i lose my key?</summary><div class="a">a recovery key is generated at setup. keep it. with it you're back in; without it nobody opens the data, including us.</div></details>
         <details><summary>does it fill up my disk?</summary><div class="a">no. default residency is zero bytes. pin a folder for offline and only that folder occupies space; unpin and the space returns.</div></details>
         <details><summary>can i work offline?</summary><div class="a">pinned folders, yes. new writes queue locally and upload when the network returns, resuming mid-chunk after drops.</div></details>
         <details><summary>what happens if i stop paying?</summary><div class="a">nothing is deleted. reads and mounts keep working for 30 days; writes resume when you pick a plan again.</div></details>
         <details><summary>refunds?</summary><div class="a">full refund within 3 days of the first payment, once per person. renewals aren't refunded; cancel any time.</div></details>
-        <details><summary>what does beta mean here?</summary><div class="a">the core, crypto and billing paths are built and tested end to end (110 tests, zero clippy warnings). expect sharp edges in installer polish, not in data safety. changelog is public.</div></details>
+        <details><summary>what does beta mean here?</summary><div class="a">core, crypto and billing are built and tested end to end (110 tests, zero clippy warnings). expect sharp edges in installer polish, not in data safety. the changelog is public.</div></details>
       </div>
     </div>
   </section>
 
-  <section class="final" style="padding-top: 0;">
-    <div class="container">
-      <span class="kicker">stop deleting files to make space</span>
-      <h2>terabytes in finder.<br />zero bytes on disk.</h2>
-      <div class="cta-row">
-        <a class="btn lime" href="https://github.com/chasesdavis/lumen/releases">download for macOS</a>
-        <a class="btn ghost" href="/lumen/getting-started.html">read the docs</a>
-      </div>
-      <p class="hero-meta" style="margin-top: 18px;">free beta · universal build · macos 12+ · windows zip on the same release</p>
+  <section class="final wrap">
+    <span class="kicker rise">stop deleting files to make space</span>
+    <h2 class="rise">terabytes in finder.<br />zero bytes on disk.</h2>
+    <div class="btns rise d1">
+      <a class="btn" href="https://github.com/chasesdavis/lumen/releases">download for mac</a>
+      <a class="btn ghost" href="https://github.com/chasesdavis/lumen/releases/download/v0.1.0-beta.1/Lumen-0.1.0-win64.zip">windows zip</a>
     </div>
+    <p class="hero-note rise d1">free beta · universal build · macos 12+ · end-to-end encrypted</p>
   </section>
 
   <footer>
-    <div class="container footer-grid">
-      <div>
-        <div class="foot-brand">lumen.</div>
-        <p style="margin-top: 6px;">a drive for big files and the agents that work on them.</p>
-      </div>
-      <div class="f-links">
-        <a href="/lumen/getting-started.html">docs</a>
-        <a href="/lumen/changelog.html">changelog</a>
-        <a href="https://github.com/chasesdavis/lumen">github</a>
-        <a href="https://github.com/chasesdavis/lumen/releases">releases</a>
-      </div>
+    <div class="wrap fgrid">
+      <div><div class="fbrand">lumen.</div><p style="margin-top:6px;">a drive for big files and the agents that work on them.</p></div>
+      <div class="flinks"><a href="/lumen/getting-started.html">docs</a><a href="/lumen/changelog.html">changelog</a><a href="https://github.com/chasesdavis/lumen">github</a><a href="https://github.com/chasesdavis/lumen/releases">releases</a></div>
     </div>
-    <div class="container" style="margin-top: 26px; font-size: 12px;">© 2026 lumen · open beta · <a href="https://github.com/chasesdavis/lumen/blob/main/README.md">source</a></div>
+    <div class="wrap" style="margin-top: 24px; font-size: 12px;">© 2026 lumen · open beta · <a href="https://github.com/chasesdavis/lumen/blob/main/README.md">source</a></div>
   </footer>
+
+  <script>
+    (function () {
+      var root = document.documentElement;
+      var btn = document.getElementById('theme');
+      function paint() { btn.textContent = root.getAttribute('data-theme') === 'dark' ? '☀' : '◐'; }
+      paint();
+      btn.addEventListener('click', function () {
+        var next = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+        root.setAttribute('data-theme', next);
+        try { localStorage.setItem('lumen-theme', next); } catch (e) {}
+        paint();
+      });
+
+      var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+      var io = new IntersectionObserver(function (entries) {
+        entries.forEach(function (en) {
+          if (en.isIntersecting) { en.target.classList.add('in'); io.unobserve(en.target); }
+        });
+      }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
+      document.querySelectorAll('.rise').forEach(function (el) { io.observe(el); });
+
+      var crawl = document.getElementById('crawl');
+      if (crawl) { crawl.innerHTML += crawl.innerHTML; }
+
+      var tabs = document.querySelectorAll('.tab');
+      tabs.forEach(function (t) {
+        t.addEventListener('click', function () {
+          tabs.forEach(function (x) { x.setAttribute('aria-selected', 'false'); });
+          t.setAttribute('aria-selected', 'true');
+          document.querySelectorAll('.panel').forEach(function (p) { p.classList.remove('on'); p.hidden = true; });
+          var panel = document.getElementById(t.dataset.panel);
+          if (panel) { panel.classList.add('on'); panel.hidden = false; }
+        });
+      });
+
+      if (!reduce) {
+        var stage = document.getElementById('stage');
+        var ticking = false;
+        window.addEventListener('scroll', function () {
+          if (ticking || !stage) return;
+          ticking = true;
+          requestAnimationFrame(function () {
+            var y = Math.min(window.scrollY, 600);
+            stage.style.transform = 'translateY(' + (y * -0.04) + 'px)';
+            ticking = false;
+          });
+        }, { passive: true });
+      }
+
+      var clock = document.getElementById('clock');
+      function tick() {
+        var d = new Date();
+        var h = d.getHours() % 12; if (h === 0) h = 12;
+        var m = String(d.getMinutes()).padStart(2, '0');
+        clock.textContent = h + ':' + m + (d.getHours() >= 12 ? ' PM' : ' AM');
+      }
+      if (clock) { tick(); setInterval(tick, 30000); }
+    })();
+  </script>
 </body>
 </html>
 

@@ -1,10 +1,18 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Getting started — Lumen</title>
-  <link rel="stylesheet" href="/lumen/style.css?v=2" />
+  <link rel="stylesheet" href="/lumen/style.css?v=3" />
+  <script>
+    (function () {
+      var saved = null;
+      try { saved = localStorage.getItem('lumen-theme'); } catch (e) {}
+      var sys = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      document.documentElement.setAttribute('data-theme', saved || sys);
+    })();
+  </script>
 </head>
 <body>
   <header>
@@ -18,6 +26,7 @@
         <a href="/lumen/getting-started.html">docs</a>
         <a href="/lumen/changelog.html">changelog</a>
         <a class="dl" href="https://github.com/chasesdavis/lumen/releases">download</a>
+        <button class="theme-btn" id="theme" aria-label="Toggle dark mode">◐</button>
       </nav>
     </div>
   </header>
@@ -134,5 +143,18 @@ cargo run -p lumen-api-server --bin lumen-api-server</pre>
       <div class="f-links"><a href="/lumen/getting-started.html">docs</a><a href="/lumen/changelog.html">changelog</a><a href="https://github.com/chasesdavis/lumen">github</a><a href="https://github.com/chasesdavis/lumen/releases">releases</a></div>
     </div>
   </footer>
+  <script>
+    (function () {
+      var root = document.documentElement;
+      var btn = document.getElementById('theme');
+      function paint() { btn.textContent = root.getAttribute('data-theme') === 'dark' ? '☀' : '◐'; }
+      if (btn) { paint(); btn.addEventListener('click', function () {
+        var next = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+        root.setAttribute('data-theme', next);
+        try { localStorage.setItem('lumen-theme', next); } catch (e) {}
+        paint();
+      }); }
+    })();
+  </script>
 </body>
 </html>

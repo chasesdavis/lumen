@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 540" width="960" height="540" preserveAspectRatio="xMidYMid slice">
+  <title>Headlands above a quiet bay</title>
+  <defs>
+    <linearGradient id="sky" x2=".82" y2="1" gradientUnits="objectBoundingBox">
+      <stop stop-color="#b0c7ce"/><stop offset=".56" stop-color="#e3e7dc"/><stop offset="1" stop-color="#f3ddbc"/>
+    </linearGradient>
+    <linearGradient id="water" x2="1" y2=".75">
+      <stop stop-color="#678e99"/><stop offset=".52" stop-color="#adc0b9"/><stop offset="1" stop-color="#e0d5b8"/>
+    </linearGradient>
+    <linearGradient id="near" x2="1" y2="1">
+      <stop stop-color="#8b995c"/><stop offset=".6" stop-color="#556a4a"/><stop offset="1" stop-color="#384b43"/>
+    </linearGradient>
+    <pattern id="glints" width="80" height="17" patternUnits="userSpaceOnUse">
+      <path fill="none" stroke="#eff0d7" stroke-linecap="round" opacity=".53" d="M9 4h16m27 8h22"/>
+    </pattern>
+    <filter id="grain"><feTurbulence baseFrequency=".59" numOctaves="3" stitchTiles="stitch"/></filter>
+  </defs>
+  <path fill="url(#sky)" d="M0 0h960v540H0z"/>
+  <path fill="#ccd3c3" d="M0 239q123-53 185-53c71 0 92 27 159 30s127-48 184-45q76 5 162 34l178 30 92 1v71H0z"/>
+  <path fill="#a3b7aa" d="M0 217c63 20 106 4 158 12s85 27 141 21 101-48 187-41q68 8 131 38l150 21H0z"/>
+  <path fill="url(#water)" d="M0 258q188-12 374-9t586-12v303H0z"/>
+  <path fill="url(#glints)" opacity=".65" d="M173 288q301-26 787-28v200H143z"/>
+  <path fill="#8e9e83" d="M0 227q82 6 127 20t113 34q90 8 144 32l65 17q-29 8-93 8L0 321z"/>
+  <path fill="#768977" d="M0 257q67-10 145 17l92 23 128 42-48 8L0 334z"/>
+  <path fill="#f0e4c9" d="M0 335q173-26 334 11 58 17 34 27-39 17-143 27L0 453z"/>
+  <path fill="url(#near)" d="M0 280c88 1 143 22 192 42l116 27c33 9 33 15 7 22-51 15-100 29-133 45L0 459z"/>
+  <path fill="#5b705a" d="M0 313q32-6 74 14l48 29 49 9-30 20-72 20L0 441z"/>
+  <path fill="#e4d7b2" d="M953 540H108c82-70 152-106 255-121 66-9 104-4 167-26q51-17 82-11c-48 21-26 22 16 21 108-6 197-46 332-47z"/>
+  <path fill="#89976e" d="M110 540c117-99 215-100 295-116 28-6 79-26 107-25l28 3c-49 18-58 24-28 24 145 0 213-55 335-66q59-5 113-24v204z"/>
+  <path fill="#566d58" d="M234 540q142-47 240-64c65-14 112-16 151-47l62-5q89-10 139-47l134-22v185z"/>
+  <path fill="#3c5449" d="M449 540q147-29 194-50l111-16q83-29 136-56l70-17v139z"/>
+  <path filter="url(#grain)" opacity=".065" d="M0 0h960v540H0z"/>
+</svg>

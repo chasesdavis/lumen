@@ -1,0 +1,211 @@
+/* Reading rail and file workflow */
+:is(.lf-notes, .lf-prose, .lf-gallery).section { padding-block-end: 0; }
+:where(.lf-notes) .lf-defs { position: absolute; overflow: hidden; pointer-events: none; }
+:where(.lf-notes) .lf-sr { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+:where(.lf-notes, .lf-prose, .lf-gallery) .lf-icon { display: inline-block; width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; vertical-align: middle; }
+:where(.lf-notes) .lf-notes-body { display: grid; gap: 48px; max-width: 560px; margin-inline: auto; text-align: left; }
+:where(.lf-notes) .lf-note { display: grid; gap: 12px; }
+:where(.lf-notes) .lf-note h3 { display: flex; align-items: center; gap: 9px; margin: 0 0 4px; color: var(--ink); font-size: 14px; font-weight: 550; letter-spacing: -.012em; line-height: 1.4; }
+:where(.lf-notes) .lf-number { display: inline-grid; place-items: center; width: 21px; height: 21px; flex: none; border-radius: 50%; background: var(--tint); color: var(--ink); font: 600 12px/1 var(--font, system-ui); font-variant-numeric: tabular-nums; }
+:where(.lf-notes) .lf-note p, :where(.lf-notes) .lf-steps { margin: 0; color: var(--ink-2); font-size: 16px; line-height: 1.55; text-wrap: pretty; }
+:where(.lf-notes) .lf-note .lf-lead { color: var(--ink); font-size: 20px; font-weight: 500; letter-spacing: -.022em; line-height: 1.34; }
+:where(.lf-notes) .lf-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; padding: 0; margin: 8px 0 0; list-style: none; }
+:where(.lf-notes) .lf-stats li { display: grid; align-content: start; gap: 5px; padding: 16px; border-radius: 14px; background: var(--surface); }
+:where(.lf-notes) .lf-stats strong { color: var(--ink); font-size: clamp(24px, 2.5vw, 30px); font-weight: 620; letter-spacing: -.045em; line-height: 1.06; white-space: nowrap; }
+:where(.lf-notes) .lf-stats span { color: var(--ink-2); font-size: 12px; line-height: 1.45; }
+:where(.lf-notes) .lf-steps { display: grid; gap: 10px; padding-inline-start: 25px; list-style-type: decimal-leading-zero; }
+:where(.lf-notes) .lf-steps li { padding-inline-start: 5px; }
+:where(.lf-notes) .lf-steps li::marker { color: var(--ink-2); font: 12px/1 ui-monospace, monospace; }
+:where(.lf-notes) .lf-checks { display: grid; gap: 11px; margin: 0; padding: 0; list-style: none; }
+:where(.lf-notes) .lf-checks li { display: flex; align-items: center; gap: 12px; color: var(--ink); font-size: 14px; line-height: 1.5; }
+:where(.lf-notes) .lf-note a, :where(.lf-gallery) .lf-detail a { color: var(--ink); text-decoration: underline; text-decoration-color: var(--ink-3); text-decoration-thickness: 1px; text-underline-offset: .22em; }
+:where(.lf-notes) .lf-note a:hover, :where(.lf-gallery) .lf-detail a:hover { text-decoration-color: currentColor; }
+:where(.lf-notes) .lf-note a:focus-visible, :where(.lf-gallery) .lf-detail :focus-visible, :where(.lf-gallery) .lf-example[tabindex]:focus-visible { outline: 2px solid var(--ink); outline-offset: 4px; border-radius: 3px; }
+.lf-prose { text-align: center; }
+.lf-prose h2 { margin: 0; font-size: clamp(24px, 3.3vw, 34px); letter-spacing: -.038em; line-height: 1.14; }
+.lf-prose mark { padding: 0 .25em .045em; border-radius: 1em; background: var(--tint); color: var(--ink); }
+.lf-prose > p { max-width: 495px; margin: 19px auto 0; color: var(--ink-2); font-size: 16px; line-height: 1.6; text-wrap: pretty; }
+:where(.lf-prose) .lf-flow { display: flex; align-items: center; justify-content: center; gap: 9px; margin: 19px auto 0; color: var(--ink); font-size: 14px; font-weight: 600; }
+:where(.lf-prose) .lf-flow .lf-icon { width: 13px; height: 13px; color: var(--ink-2); }
+
+/* Gallery: the illustration is the frame; its caption sits on the page. */
+.lf-gallery {
+  --lf-coast: url("./coast.svg");
+  --lf-paper: #e5eee6; --lf-green: #305643;
+  --lf-select: #dbe9f4; --lf-select-ink: #295473;
+  --lf-mono: ui-monospace, "SFMono-Regular", Consolas, monospace;
+}
+html[data-theme="dark"] .lf-gallery {
+  --lf-paper: #2d4035; --lf-green: #b5d9bd;
+  --lf-select: #2c4152; --lf-select-ink: #c5e2f4;
+}
+.lf-gallery > h2 { margin: 0; text-align: center; }
+:where(.lf-gallery) .lf-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; gap: 32px 24px; margin-block-start: 32px; text-align: left; }
+:where(.lf-gallery) .lf-example { min-width: 0; margin: 0; }
+:where(.lf-gallery) .lf-example[id] { scroll-margin-block-start: 12px; }
+:where(.lf-gallery) .lf-example figcaption { margin-block-start: 12px; color: var(--ink-2); font-size: 14px; line-height: 1.45; }
+:where(.lf-gallery) .lf-example figcaption h3 { margin: 0 0 3px; color: var(--ink); font-size: 14px; font-weight: 650; line-height: 1.35; letter-spacing: -.012em; }
+:where(.lf-gallery) .lf-example figcaption p { margin: 0; text-wrap: pretty; }
+:where(.lf-gallery) .lf-example figcaption code { font: .91em var(--lf-mono); overflow-wrap: anywhere; }
+:where(.lf-gallery) .lf-detail { margin: 0; padding: 0; border: 0; }
+:where(.lf-gallery) .lf-detail > summary { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 6px 4px 6px 0; list-style: none; color: var(--ink); cursor: pointer; font-size: 13px; font-weight: 540; }
+:where(.lf-gallery) .lf-detail > summary::-webkit-details-marker { display: none; }
+:where(.lf-gallery) .lf-detail > summary::after { display: none; content: none; }
+:where(.lf-gallery) .lf-detail > summary::before { width: 6px; height: 6px; border: solid currentColor; border-width: 0 1.4px 1.4px 0; content: ""; transform: rotate(-45deg); }
+:where(.lf-gallery) .lf-detail[open] > summary::before { transform: translateY(-1px) rotate(45deg); }
+:where(.lf-gallery) .lf-example .lf-detail p { margin: 0 0 9px; line-height: 1.55; }
+
+/* A shared desktop wallpaper, cropped and toned differently for each scene. */
+:where(.lf-gallery) .lf-scene { position: relative; isolation: isolate; container-type: inline-size; height: 260px; overflow: hidden; border-radius: 16px; background-color: #96a89d; color: var(--ink); font: 12px/1.35 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; letter-spacing: -.007em; text-align: left; }
+:where(.lf-gallery) .lf-scene::before {
+  position: absolute; z-index: -1; inset: 0; content: "";
+  background: linear-gradient(var(--lf-wash, transparent), var(--lf-wash, transparent)), var(--lf-coast) var(--lf-crop, 50% 60%) / var(--lf-zoom, cover) no-repeat;
+  filter: var(--lf-tone, none);
+}
+:where(.lf-gallery) .lf-window { position: absolute; inset: var(--lf-top, 30px) -4px -4px clamp(16px, 7%, 32px); display: flex; flex-direction: column; min-width: 0; overflow: hidden; border: 1px solid rgb(23 31 28 / 19%); border-radius: 11px 0 0; background: var(--window); color: var(--ink); box-shadow: 0 9px 23px rgb(21 39 33 / 23%); }
+:where(.lf-gallery) .lf-titlebar { position: relative; display: flex; flex: none; align-items: center; justify-content: center; height: 33px; border-bottom: 1px solid var(--hair-2); background: var(--surface); }
+:where(.lf-gallery) .lf-titlebar b { overflow: hidden; margin-inline: 47px; font-size: 12px; font-weight: 620; white-space: nowrap; text-overflow: ellipsis; }
+:where(.lf-gallery) .lf-titlebar > .lf-icon { position: absolute; right: 12px; width: 13px; height: 13px; color: var(--ink-2); }
+:where(.lf-gallery) .lf-lights { position: absolute; left: 12px; width: 8px; height: 8px; border-radius: 50%; background: #e78278; box-shadow: 12px 0 #e7be63, 24px 0 #82b681; }
+:where(.lf-gallery) .lf-pad { min-width: 0; padding: 13px clamp(12px, 4%, 18px); }
+:where(.lf-gallery) .lf-scene small { display: block; color: var(--ink-2); font-size: 10px; line-height: 1.4; }
+:where(.lf-gallery) .lf-docline { display: flex; align-items: center; gap: 7px; min-width: 0; margin-bottom: 14px; }
+:where(.lf-gallery) .lf-docline b { font-size: 13px; font-weight: 630; }
+:where(.lf-gallery) .lf-docline small { margin-inline-start: auto; }
+:where(.lf-gallery) .lf-pair { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: baseline; gap: 8px; padding: 8px 0; border-top: 1px solid var(--hair-2); color: var(--ink-2); font-size: 11px; }
+:where(.lf-gallery) .lf-pair b { color: var(--ink); font-weight: 550; }
+:where(.lf-gallery) .lf-thumb, :where(.lf-gallery) .lf-film-still, :where(.lf-gallery) .lf-edit-monitor { background: #99a9a1 var(--lf-coast) center / cover no-repeat; }
+:where(.lf-gallery) .lf-scene .lf-folder { fill: #a6cbe3; color: #5486a7; stroke-width: 1.35; }
+
+/* Finder drop and File Explorer */
+:where(.lf-gallery) .lf-finder { --lf-crop: 18% 67%; --lf-zoom: 135% auto; }
+:where(.lf-gallery) .lf-menubar { display: flex; align-items: center; gap: 14px; height: 25px; padding-inline: 16px; border-bottom: 1px solid #2f453826; background: rgb(247 249 245 / 74%); color: #22372c; font-size: 11px; }
+:where(.lf-gallery) .lf-menubar time { margin-left: auto; font-variant-numeric: tabular-nums; }
+:where(.lf-gallery) .lf-finder .lf-browser { inset: 43px 9% 25px 7%; border-radius: 10px; }
+:where(.lf-gallery) .lf-finder-body { display: grid; flex: 1; grid-template-columns: clamp(100px, 30%, 108px) minmax(0, 1fr); }
+:where(.lf-gallery) .lf-sidebar { padding: 12px 5px; border-right: 1px solid var(--hair-2); background: var(--fill); }
+:where(.lf-gallery) .lf-sidebar small, :where(.lf-gallery) .lf-filelist small { margin: 0 5px 5px; font-weight: 580; }
+:where(.lf-gallery) .lf-sidebar span, :where(.lf-gallery) .lf-filelist span, :where(.lf-gallery) .lf-explorer-list > div > span, :where(.lf-gallery) .lf-results span { display: flex; align-items: center; gap: 6px; }
+:where(.lf-gallery) .lf-sidebar span { min-height: 25px; padding-inline: 4px; border-radius: 5px; font-size: 10px; white-space: nowrap; }
+:where(.lf-gallery) .lf-sidebar .lf-icon { width: 13px; height: 13px; }
+:where(.lf-gallery) .lf-selected { background: var(--lf-select); color: var(--lf-select-ink); font-weight: 610; }
+:where(.lf-gallery) .lf-filelist { padding: 12px 6px; }
+:where(.lf-gallery) .lf-filelist span { min-height: 26px; padding: 3px 5px; border-radius: 4px; }
+:where(.lf-gallery) .lf-filelist .lf-droptarget { outline: 1px solid #6d96b6; outline-offset: -1px; background: var(--lf-select); color: var(--lf-select-ink); }
+:where(.lf-gallery) .lf-dragchip { position: absolute; top: 61%; right: 5%; display: flex; align-items: center; gap: 7px; padding: 4px 9px 4px 4px; border: 1px solid var(--hair); border-radius: 7px; background: var(--surface); color: var(--ink); box-shadow: 0 4px 10px #122c3433; font-size: 11px; font-weight: 580; }
+:where(.lf-gallery) .lf-dragchip .lf-thumb { width: 29px; height: 23px; border-radius: 3px; }
+:where(.lf-gallery) .lf-pointer { position: absolute; top: -12px; left: -8px; width: 14px; height: 19px; fill: #222526; stroke: #fff; stroke-width: 1.35; stroke-linejoin: round; }
+:where(.lf-gallery) .lf-explorer { --lf-crop: 55% 85%; --lf-zoom: 163% auto; --lf-wash: #9fafc449; --lf-tone: hue-rotate(18deg); --lf-top: 33px; }
+:where(.lf-gallery) .lf-explorer .lf-window { font-family: "Segoe UI", system-ui, sans-serif; }
+:where(.lf-gallery) .lf-explorer .lf-folder { fill: #f0cd79; color: #ad864c; }
+:where(.lf-gallery) .lf-win-tabs { display: flex; align-items: flex-end; justify-content: space-between; height: 34px; padding: 5px 13px 0 7px; background: var(--fill); }
+:where(.lf-gallery) .lf-win-tabs span { display: flex; align-items: center; gap: 7px; width: 43%; height: 27px; padding-inline: 9px; border-radius: 6px 6px 0 0; background: var(--window); font-size: 11px; }
+:where(.lf-gallery) .lf-win-tabs i { position: relative; width: 8px; height: 7px; margin: 0 19px 11px 0; border: 1px solid var(--ink-2); }
+:where(.lf-gallery) .lf-win-tabs i::before { position: absolute; right: 22px; bottom: 1px; width: 8px; border-bottom: 1px solid var(--ink-2); content: ""; }
+:where(.lf-gallery) .lf-address, :where(.lf-gallery) .lf-editor-path { display: flex; align-items: center; gap: 10px; color: var(--ink-2); font-size: 11px; }
+:where(.lf-gallery) .lf-address { margin: 10px 10px 5px; padding: 6px 8px; border: 1px solid var(--hair); border-radius: 4px; }
+:where(.lf-gallery) .lf-address i, :where(.lf-gallery) .lf-editor-path i { width: 5px; height: 5px; border: solid currentColor; border-width: 1px 1px 0 0; transform: rotate(45deg); }
+:where(.lf-gallery) .lf-explorer-list { padding: 3px 13px; }
+:where(.lf-gallery) .lf-explorer-list > div { display: grid; grid-template-columns: minmax(0, 1fr) minmax(68px, 29%); align-items: center; min-height: 27px; border-bottom: 1px solid var(--hair-2); font-size: 11px; }
+:where(.lf-gallery) .lf-explorer-list .lf-table-head { color: var(--ink-2); font-size: 10px; }
+
+/* The playing clip and its read trace */
+:where(.lf-gallery) .lf-player { --lf-crop: 80% 84%; --lf-zoom: 170% auto; --lf-wash: #304b403d; }
+:where(.lf-gallery) .lf-play-window { inset: 23px 6% 17px 8%; border-radius: 10px; background: #1d2526; color: #fff; }
+:where(.lf-gallery) .lf-play-window .lf-titlebar, :where(.lf-gallery) .lf-cut-window .lf-titlebar { border-color: #ffffff19; background: #272e30; color: #f1f4ef; }
+:where(.lf-gallery) .lf-film-still { flex: 1; min-height: 0; background-position: 42% 54%; }
+:where(.lf-gallery) .lf-playback { display: flex; align-items: center; gap: 9px; padding: 11px 13px; color: #eef3f0; font: 9px var(--lf-mono); }
+:where(.lf-gallery) .lf-pause { width: 8px; height: 10px; border: solid currentColor; border-width: 0 3px; }
+:where(.lf-gallery) .lf-scrub { position: relative; flex: 1; height: 3px; border-radius: 5px; background: linear-gradient(to right, #e6efea 21%, #61716e 21%); }
+:where(.lf-gallery) .lf-scrub::after { position: absolute; top: 50%; left: 21%; width: 7px; height: 7px; border-radius: 50%; background: white; content: ""; transform: translate(-50%, -50%); }
+:where(.lf-gallery) .lf-cache { --lf-crop: 5% 98%; --lf-zoom: 230% auto; --lf-wash: #bdbaa52e; }
+:where(.lf-gallery) .lf-trace { display: grid; grid-template-columns: max-content minmax(0, 1fr); align-items: center; gap: 7px 12px; margin: 1px 0 13px; padding: 10px; border: 1px solid var(--hair-2); border-radius: 7px; background: var(--surface); font-size: 10px; }
+:where(.lf-gallery) .lf-blocks { height: 13px; border-radius: 2px; background: repeating-linear-gradient(to right, transparent 0 calc(8.333% - 2px), var(--surface) calc(8.333% - 2px) 8.333%), var(--lf-bar); }
+:where(.lf-gallery) .lf-hit { --lf-bar: linear-gradient(to right, #678c7b 50%, var(--fill) 50%); }
+:where(.lf-gallery) .lf-ahead { --lf-bar: linear-gradient(to right, var(--fill) 50%, #9bacc0 50% 75%, var(--fill) 75%); }
+
+/* Chunk inspector and storage configuration */
+:where(.lf-gallery) .lf-cdc { --lf-crop: 10% 92%; --lf-zoom: 175% auto; --lf-tone: sepia(.2); }
+:where(.lf-gallery) .lf-cdc .lf-window { inset: 28px 5% 18px 7%; border-radius: 10px; }
+:where(.lf-gallery) .lf-cdc .lf-docline { margin-bottom: 11px; }
+:where(.lf-gallery) .lf-strip { display: grid; grid-template-columns: 1fr 1.35fr .9fr 1.5fr 1fr; gap: 3px; margin: 3px 0 10px; }
+:where(.lf-gallery) .lf-strip span { display: grid; place-items: center; height: 22px; border-radius: 3px; background: var(--fill); color: var(--ink-2); font: 10px var(--lf-mono); }
+:where(.lf-gallery) .lf-strip .lf-new { border: 1px solid var(--lf-green); background: var(--lf-paper); color: var(--lf-green); font-weight: 650; }
+:where(.lf-gallery) .lf-map-key { display: flex; align-items: center; gap: 6px; color: var(--ink-2); font-size: 10px; }
+:where(.lf-gallery) .lf-map-key i { width: 8px; height: 8px; border: 1px solid var(--lf-green); border-radius: 2px; background: var(--lf-paper); }
+:where(.lf-gallery) .lf-storage { --lf-crop: 86% 75%; --lf-zoom: 150% auto; --lf-wash: #677b9338; }
+:where(.lf-gallery) .lf-editor-path { height: 29px; padding-inline: 14px; border-bottom: 1px solid var(--hair-2); }
+:where(.lf-gallery) .lf-config { display: grid; gap: 8px; padding: 17px 11px 0; }
+:where(.lf-gallery) .lf-config > div { display: grid; grid-template-columns: 12px minmax(0, 1fr); gap: 7px; font: 10px/1.45 var(--lf-mono); }
+:where(.lf-gallery) .lf-config span, :where(.lf-gallery) .lf-config > :first-child code { color: var(--ink-2); }
+:where(.lf-gallery) .lf-config code { font: inherit; overflow-wrap: anywhere; }
+:where(.lf-gallery) .lf-config b { color: var(--lf-green); font-weight: 550; }
+:where(.lf-gallery) .lf-bucket-tag { display: flex; align-items: center; align-self: flex-start; gap: 9px; margin: 15px 0 10px 30px; padding: 6px 11px; border: 1px solid var(--hair); border-radius: 7px; background: var(--surface); }
+:where(.lf-gallery) .lf-bucket-tag .lf-icon { width: 20px; height: 20px; color: var(--lf-green); }
+:where(.lf-gallery) .lf-bucket-tag b { font-size: 11px; font-weight: 620; }
+
+/* Local tool call and remote object preview */
+:where(.lf-gallery) .lf-agent { --lf-crop: 15% 100%; --lf-zoom: 218% auto; --lf-tone: saturate(.86) brightness(.86); }
+:where(.lf-gallery) .lf-agent .lf-window { inset: 25px 4% 11px 7%; border-radius: 10px; }
+:where(.lf-gallery) .lf-agent .lf-docline { margin-bottom: 9px; }
+:where(.lf-gallery) .lf-call { display: grid; gap: 4px; margin-bottom: 10px; padding: 7px 10px; border-inline-start: 2px solid var(--lf-green); border-radius: 0 5px 5px 0; background: var(--lf-paper); color: var(--lf-green); font: 11px/1.4 var(--lf-mono); }
+:where(.lf-gallery) .lf-call code, :where(.lf-gallery) .lf-hex code, :where(.lf-gallery) .lf-object code { font: inherit; }
+:where(.lf-gallery) .lf-results { display: grid; gap: 4px; margin-top: 6px; }
+:where(.lf-gallery) .lf-results span { font-size: 11px; }
+:where(.lf-gallery) .lf-results .lf-icon { width: 13px; height: 13px; color: var(--ink-2); }
+:where(.lf-gallery) .lf-security { --lf-zoom: 200% auto; --lf-crop: 86% 98%; --lf-wash: #46597750; }
+:where(.lf-gallery) .lf-object { display: flex; align-items: center; gap: 8px; padding: 9px; border-radius: 6px 6px 0 0; background: #364246; color: #e9f1e9; font: 10px var(--lf-mono); }
+:where(.lf-gallery) .lf-object .lf-icon { width: 13px; height: 13px; }
+:where(.lf-gallery) .lf-hex { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 8px 13px; padding: 13px 10px 16px; border-radius: 0 0 6px 6px; background: #252f32; color: #d4e4db; font: 11px/1.35 var(--lf-mono); }
+:where(.lf-gallery) .lf-hex span { color: #93a69b; }
+
+/* Editing timeline and per-provider meter */
+:where(.lf-gallery) .lf-cut { --lf-crop: 26% 90%; --lf-zoom: 170% auto; --lf-tone: saturate(.74); }
+:where(.lf-gallery) .lf-cut-window { inset: 29px -3px -3px 7%; border-color: #1c2324; background: #23292b; color: #eef1f0; }
+:where(.lf-gallery) .lf-edit-top { display: grid; grid-template-columns: 31% minmax(0, 1fr); height: 43%; min-height: 75px; border-bottom: 3px solid #181e20; }
+:where(.lf-gallery) .lf-edit-top > div { display: grid; align-content: start; gap: 5px; padding: 8px; background: #30383a; font-size: 10px; }
+:where(.lf-gallery) .lf-edit-top small { color: #b5c1c2; font-size: 9px; }
+:where(.lf-gallery) .lf-edit-top span { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+:where(.lf-gallery) .lf-edit-monitor { margin: 6px 10px; background-position: 38% 56%; }
+:where(.lf-gallery) .lf-timecode { padding: 6px 10px 4px; color: #c8d6d7; font: 10px var(--lf-mono); }
+:where(.lf-gallery) .lf-timeline { position: relative; margin: 0 9px 10px; padding: 9px 0 5px; }
+:where(.lf-gallery) .lf-ruler { position: absolute; inset: 0 0 auto; height: 4px; background: repeating-linear-gradient(to right, #879197 0 1px, transparent 1px 6%); }
+:where(.lf-gallery) .lf-video-track { height: 24px; border: solid #768fa4; border-width: 3px 1px; border-radius: 3px; background: repeating-linear-gradient(90deg, transparent 0 34px, #687e91 34px 35px), var(--lf-coast) left center / 35px 24px repeat-x; }
+:where(.lf-gallery) .lf-audio-track { height: 15px; margin-top: 3px; border: 1px solid #50816c; border-radius: 2px; background: #345748; }
+:where(.lf-gallery) .lf-audio-track svg { display: block; width: 100%; height: 100%; fill: none; stroke: #a9c8a5; }
+:where(.lf-gallery) .lf-playhead { position: absolute; inset: 0 auto 0 39%; width: 1px; background: #f1c487; }
+:where(.lf-gallery) .lf-playhead::before { position: absolute; left: -3px; width: 7px; height: 7px; clip-path: polygon(0 0, 100% 0, 100% 55%, 50% 100%, 0 55%); background: inherit; content: ""; }
+:where(.lf-gallery) .lf-meter { --lf-crop: 10% 75%; --lf-zoom: 145% auto; --lf-wash: #b5c3ad35; }
+:where(.lf-gallery) .lf-meter .lf-docline { margin-bottom: 9px; }
+:where(.lf-gallery) .lf-reclaim b { color: var(--lf-green); }
+
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  :where(.lf-gallery) .lf-window { transition: translate .35s var(--ease-out, ease-out); }
+  :where(.lf-gallery) .lf-example:hover .lf-window { translate: 0 -3px; }
+}
+@media (max-width: 640px) {
+  :where(.lf-gallery) .lf-grid { grid-template-columns: minmax(0, 1fr); }
+  :where(.lf-gallery) .lf-scene { height: clamp(228px, 65vw, 260px); }
+}
+@media (max-width: 480px) {
+  :where(.lf-notes) .lf-stats { grid-template-columns: minmax(0, 1fr); }
+  :where(.lf-notes) .lf-stats li { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; padding: 12px 15px; }
+  :where(.lf-notes) .lf-stats span { text-align: right; }
+}
+@container (max-width: 330px) {
+  :where(.lf-gallery) .lf-finder .lf-browser { inset: 39px 4% 16px; }
+  :where(.lf-gallery) .lf-finder-body { grid-template-columns: 97px minmax(0, 1fr); }
+  :where(.lf-gallery) .lf-sidebar { padding-inline: 3px; }
+  :where(.lf-gallery) .lf-sidebar span { gap: 3px; }
+  :where(.lf-gallery) .lf-filelist span:last-child { display: none; }
+  :where(.lf-gallery) .lf-dragchip { top: 155px; right: 8%; gap: 5px; font-size: 10px; }
+  :where(.lf-gallery) .lf-dragchip .lf-thumb { width: 23px; height: 18px; }
+  :where(.lf-gallery) .lf-pointer { right: 5px; left: auto; }
+  :where(.lf-gallery) .lf-play-window, :where(.lf-gallery) .lf-cdc .lf-window, :where(.lf-gallery) .lf-agent .lf-window { inset: 19px 4% 12px 5%; }
+  :where(.lf-gallery) .lf-cache .lf-docline { margin-bottom: 9px; }
+  :where(.lf-gallery) .lf-cache .lf-pair { padding-block: 6px; }
+  :where(.lf-gallery) .lf-cut-window { inset-inline-start: 5%; }
+  :where(.lf-gallery) .lf-config { gap: 6px; padding-top: 11px; }
+  :where(.lf-gallery) .lf-bucket-tag { margin-top: 10px; }
+  :where(.lf-gallery) .lf-edit-top > div { padding-inline: 5px; }
+}

@@ -361,3 +361,5 @@ footer a:hover { color: var(--ink); }
 .doc-nav a { font-family: var(--mono); font-size: 11px; letter-spacing: .05em; text-transform: uppercase; text-decoration: none; border: 0.5px solid var(--hair); border-radius: 999px; padding: 5px 12px; color: var(--ink-3); }
 .doc-nav a.on, .doc-nav a:hover { border-color: var(--ink); color: var(--ink); }
 
+.price-card, .price-grid > *, .enc-grid > * { min-width: 0; }
+.ptable, .doc table { min-width: 0; }

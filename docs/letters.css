@@ -353,14 +353,9 @@ html[data-theme="dark"] #story .ld-answer img { filter: none; }
 }
 #love .lc-toggle[hidden], #love .lc-set[hidden] { display: none; }
 #love .lc-set li {
-  --lc-paper: #e9d6bd;
-  --lc-wash: #c5b695;
   width: min(320px, 89cqi);
   display: flex;
 }
-#love .lc-set li:nth-child(4n + 2) { --lc-paper: #dfe2ee; --lc-wash: #acb6ce; }
-#love .lc-set li:nth-child(4n + 3) { --lc-paper: #d7e4d6; --lc-wash: #a5beb3; }
-#love .lc-set li:nth-child(4n) { --lc-paper: #efded7; --lc-wash: #c9aba6; }
 #love .lc-card {
   flex: 1;
   min-width: 0;
@@ -379,17 +374,14 @@ html[data-theme="dark"] #story .ld-answer img { filter: none; }
 #love .lc-card p { margin: 0; font-size: 1rem; line-height: 1.5; text-wrap: pretty; }
 #love .lc-by { display: flex; align-items: center; gap: 10px; margin-top: auto; padding-top: 16px; }
 #love .lc-face {
-  display: grid;
-  place-items: center;
+  display: block;
   width: 32px;
   height: 32px;
   flex: none;
   border-radius: 50%;
-  color: #303331;
-  background: linear-gradient(145deg, var(--lc-paper) 20%, var(--lc-wash));
-  box-shadow: inset 0 0 0 1px rgb(41 43 40 / 10%);
-  font-size: 12px;
-  font-weight: 650;
+  object-fit: cover;
+  background: var(--fill);
+  box-shadow: 0 0 0 1px var(--hair-2);
 }
 #love .lc-by b, #love .lc-by small { display: block; line-height: 1.24; }
 #love .lc-by b { font-weight: 500; font-size: .875rem; }
